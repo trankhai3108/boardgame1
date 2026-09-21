@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dice-throne",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // The built site is served by the Worker itself, so the page and the
+  // websocket share one origin: no CORS, no second deploy, no server URL to
+  // configure.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM", "class_name": "Room" }]
+  },
+
+  // SQLite-backed Durable Objects, which is what the free plan provides.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,415 @@
+/* The play table: two player panels, the dice tray between them, and a log. */
+
+.play {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* Seats alternate left / right, so a 6-player table stacks three a side. */
+.play__side { display: grid; gap: 0.9rem; align-content: start; }
+
+@media (max-width: 1100px) {
+  .play { grid-template-columns: 1fr; }
+}
+
+.play__setup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.play__setup select {
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+
+.play__button {
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid #4d7ba7;
+  background: #2c4761;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.play__button:disabled { opacity: 0.4; cursor: not-allowed; }
+.play__button--ghost { background: var(--panel); border-color: var(--line); color: var(--muted); }
+
+/* --- player panel --- */
+
+.player-panel {
+  padding: 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.player-panel--active { border-color: #4d7ba7; box-shadow: 0 0 0 1px #4d7ba7 inset; }
+
+.player-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.player-panel__avatar {
+  width: 3.4rem;
+  height: 3.4rem;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  /* The portraits are framed head-up, so bias the crop towards the face. */
+  object-position: center 22%;
+  border: 2px solid var(--line);
+  background: #0e161d;
+}
+
+.player-panel--active .player-panel__avatar { border-color: #4d7ba7; }
+
+.player-panel__names { display: flex; flex-direction: column; line-height: 1.2; }
+.player-panel__name { font-family: 'Oswald', sans-serif; font-size: 1.2rem; font-weight: 600; }
+.player-panel__hero { color: var(--muted); font-size: 0.9rem; }
+
+.dials { display: flex; gap: 0.6rem; margin-bottom: 0.9rem; }
+
+.dial {
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.6rem;
+  background: #0e161d;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.dial__value { font-family: 'Oswald', sans-serif; font-size: 1.6rem; line-height: 1; }
+.dial__label { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.dial--health .dial__value { color: #ff6b6b; }
+.dial--cp .dial__value { color: #4fd1c5; }
+
+.health-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #2a1414;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.health-bar__fill { height: 100%; background: linear-gradient(90deg, #d84a4a, #ff8a8a); }
+
+.tokens { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem 0.2rem 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #0e161d;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.token .dt-icon { width: 1.35rem; height: 1.35rem; margin: 0; }
+.token--spendable { border-color: #4fd1c5; cursor: pointer; }
+.token--spendable:hover { background: #12262a; }
+
+/* --- dice tray --- */
+
+.tray {
+  padding: 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.tray__phase {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+}
+
+.tray__phase-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tray__attempts { color: var(--muted); font-size: 0.9rem; }
+
+.dice-row { display: flex; gap: 0.6rem; justify-content: center; margin: 1rem 0; }
+
+.die {
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.7rem;
+  border: 2px solid transparent;
+  background: #2b2b30;
+  cursor: pointer;
+  position: relative;
+}
+
+.die:disabled { cursor: default; }
+.die--kept { border-color: #e8c34a; background: #3a3524; }
+.die .dt-icon { width: 2.4rem; height: 2.4rem; margin: 0; }
+
+.die__value {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.35rem;
+  font-size: 0.75rem;
+  color: rgb(255 255 255 / 45%);
+}
+
+.ability-list { display: grid; gap: 0.5rem; }
+
+.ability-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--line);
+  background: #0e161d;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ability-option:hover { border-color: #4d7ba7; }
+.ability-option--ultimate { border-color: #b8942f; background: #1d1809; }
+.ability-option__name { font-weight: 700; }
+.ability-option__text { color: var(--muted); font-size: 0.85rem; }
+
+.tray__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+
+.attack-summary {
+  padding: 0.8rem;
+  border-radius: 0.6rem;
+  border: 1px solid #7a4a1e;
+  background: #241a10;
+  margin-bottom: 0.9rem;
+}
+
+.attack-summary__amount { font-family: 'Oswald', sans-serif; font-size: 1.8rem; color: #ffb36b; }
+
+/* --- log --- */
+
+.log {
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: 0.8rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: #0a1015;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.log__entry { padding: 0.15rem 0; border-bottom: 1px solid rgb(255 255 255 / 4%); }
+.log__player { color: #7fd1c8; font-weight: 600; }
+.log__phase { color: var(--muted); font-size: 0.75rem; letter-spacing: 0.05em; }
+
+.winner-banner {
+  padding: 1rem 1.2rem;
+  border-radius: 0.8rem;
+  border: 1px solid #b8942f;
+  background: linear-gradient(120deg, #2a2210, #1a1508);
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.3rem;
+  margin-bottom: 1.25rem;
+}
+
+/* --- hand --- */
+
+.hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.hand__card { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.hand__actions { display: flex; gap: 0.4rem; }
+.hand__actions .play__button { flex: 1; padding: 0.35rem 0.6rem; font-size: 0.85rem; }
+
+
+/* ---------------------------------------------------------------- */
+/* Seat state                                                         */
+/* ---------------------------------------------------------------- */
+
+.player-panel--you { border-color: #3f8f6a; }
+.player-panel--target { box-shadow: 0 0 0 2px #b3622a inset; }
+.player-panel--out { opacity: 0.45; }
+
+.player-panel__you {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #24503f;
+  color: #8fe0bb;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.team-chip {
+  margin-left: auto;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid currentColor;
+}
+
+.team-chip--0 { color: #6fb0e8; }
+.team-chip--1 { color: #e8956f; }
+.team-chip--2 { color: #b48fe0; }
+
+.turn-hint { color: #e8c34a; font-weight: 600; }
+
+.attack-summary--targeting { border-color: #4d7ba7; background: #101d29; }
+.attack-summary--targeting .attack-summary__amount { color: #8fc3f0; }
+
+.seat-picker { display: grid; gap: 0.5rem; max-width: 26rem; }
+.seat-picker__row { display: flex; align-items: center; gap: 0.75rem; }
+.seat-picker__seat { flex: 1; color: var(--muted); }
+.seat-picker select { flex: 1; }
+
+.card-back {
+  width: 190px;
+  aspect-ratio: 450 / 703;
+  border-radius: 0.8rem;
+  border: 2px solid #2a3a48;
+  background:
+    repeating-linear-gradient(45deg, #16222e 0 8px, #1b2936 8px 16px);
+}
+
+/* ---------------------------------------------------------------- */
+/* Doorway and lobby                                                  */
+/* ---------------------------------------------------------------- */
+
+.doorway { display: grid; gap: 1rem; max-width: 42rem; }
+
+.doorway__field { display: grid; gap: 0.35rem; }
+.doorway__field span { color: var(--muted); font-size: 0.9rem; }
+
+.doorway__field input,
+.doorway__code,
+.seat-picker select,
+.lobby__mode select {
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+
+.doorway__panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 720px) { .doorway__panels { grid-template-columns: 1fr; } }
+
+.doorway__panel {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.doorway__panel h3 {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.doorway__code {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.35em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.lobby { display: grid; gap: 1rem; }
+
+.lobby__head {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.lobby__code {
+  font-family: 'Oswald', sans-serif;
+  font-size: 2.2rem;
+  letter-spacing: 0.3em;
+  color: #e8c34a;
+  line-height: 1;
+}
+
+.lobby__code--small { font-size: 1.1rem; letter-spacing: 0.2em; }
+
+.lobby__mode { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
+
+.lobby__seats { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+
+.lobby__seat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem 0.6rem 0.6rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  min-width: 15rem;
+}
+
+.lobby__seat--you { border-color: #3f8f6a; }
+.lobby__seat--away { opacity: 0.5; }
+
+.lobby__avatar-blank {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  border: 2px dashed var(--line);
+}
+
+.lobby__host {
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8c34a;
+}
+
+.doorway__hint { color: #e8c34a; font-size: 0.85rem; }

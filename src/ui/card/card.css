@@ -1,0 +1,326 @@
+/*
+ * Dice Throne card frame.
+ *
+ * Geometry follows the printed card (450 x 703 px at the reference scale), so
+ * every internal measurement is expressed in `em` against --dt-card-w and the
+ * whole card scales from that one variable.
+ *
+ * Frame colours were sampled from published component photos; the artwork area
+ * is a placeholder, never a reproduction.
+ */
+
+.dt-card {
+  --dt-card-w: 300px;
+  --dt-frame: #4a88c9;
+  --dt-star: #4a88c9;
+  --dt-rail-bg: linear-gradient(180deg, #d8dcdd, #9aa1a3);
+
+  position: relative;
+  width: var(--dt-card-w);
+  aspect-ratio: 450 / 703;
+  font-size: calc(var(--dt-card-w) / 450 * 16px);
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  border-radius: 1.4em;
+  background: #000;
+  padding: 0.5em;
+  box-shadow: 0 0.5em 1.4em rgb(0 0 0 / 45%);
+  user-select: none;
+}
+
+.dt-card--mainPhase { --dt-frame: #4a88c9; --dt-star: #4a88c9; }
+.dt-card--rollPhase { --dt-frame: #f89a52; --dt-star: #f08a34; }
+.dt-card--instant   { --dt-frame: #ef2a2c; --dt-star: #e02226; }
+.dt-card--upgrade   { --dt-frame: #eff8fa; --dt-star: #3f8fd8; }
+
+/* Coloured ring */
+.dt-card__frame {
+  position: relative;
+  height: 100%;
+  border-radius: 1em;
+  background: var(--dt-frame);
+  padding: 0.85em;
+  overflow: hidden;
+}
+
+/* Black field the content sits on */
+.dt-card__inner {
+  position: relative;
+  height: 100%;
+  border-radius: 0.5em;
+  background: #0b0d10;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------------- */
+/* Title banner                                                       */
+/* ---------------------------------------------------------------- */
+
+.dt-card__title {
+  position: relative;
+  z-index: 3;
+  margin: 0;
+  padding: 0.5em 2.6em 1.15em;
+  text-align: center;
+  font-family: 'Oswald', 'Barlow Semi Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.45em;
+  text-wrap: balance;
+  hyphens: auto;
+  line-height: 1.0;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    0 0 0.12em #000,
+    0.06em 0.06em 0 #000,
+    -0.06em 0.06em 0 #000,
+    0.06em -0.06em 0 #000,
+    -0.06em -0.06em 0 #000;
+  background: linear-gradient(180deg, #23282e 0%, #171b20 60%, #0e1114 100%);
+  /* Torn-paper lower edge, echoing the printed banner. */
+  clip-path: polygon(
+    0 0, 100% 0, 100% 84%, 92% 100%, 84% 86%, 73% 99%,
+    62% 87%, 51% 100%, 40% 88%, 29% 99%, 18% 87%, 8% 100%, 0 88%
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/* Left rail: CP cost, type icon, vertical label                      */
+/* ---------------------------------------------------------------- */
+
+.dt-card__rail {
+  position: absolute;
+  top: 3.1em;
+  left: 0;
+  z-index: 4;
+  width: 2.5em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 0 0.45em 0.45em 0;
+  background: var(--dt-rail-bg);
+  box-shadow: 0.1em 0.1em 0.3em rgb(0 0 0 / 55%);
+}
+
+.dt-card__cost {
+  position: relative;
+  width: 100%;
+  padding: 0.25em 0 0.15em;
+  display: grid;
+  place-items: center;
+}
+
+.dt-rail-icon { width: 1.5em; height: 1.5em; display: block; }
+
+.dt-card__cost-value {
+  font-weight: 800;
+  font-size: 1.05em;
+  line-height: 1;
+  color: #15181b;
+}
+
+.dt-card__cost-value sup {
+  font-size: 0.62em;
+  font-weight: 700;
+  margin-left: 0.06em;
+}
+
+.dt-card__type-icon {
+  width: 100%;
+  padding: 0.15em 0 0.3em;
+  display: grid;
+  place-items: center;
+  border-top: 0.08em solid rgb(0 0 0 / 25%);
+}
+
+.dt-card__rail-label {
+  width: 100%;
+  padding: 0.55em 0;
+  border-radius: 0 0 0.45em 0.45em;
+  background: linear-gradient(180deg, #2b3136, #1b1f23);
+  color: #eef2f4;
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* Set code printed up the right edge */
+.dt-card__setcode {
+  position: absolute;
+  top: 3.1em;
+  right: 0.25em;
+  z-index: 4;
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #c9d2d8;
+  writing-mode: vertical-rl;
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------- */
+/* Art                                                                */
+/* ---------------------------------------------------------------- */
+
+.dt-card__art {
+  position: relative;
+  /* The art yields space to the text, which varies a lot between languages. */
+  flex: 1 1 0;
+  min-height: 3.5em;
+  background: radial-gradient(120% 100% at 50% 20%, #33404e 0%, #161d25 55%, #0b0f14 100%);
+  overflow: hidden;
+}
+
+.dt-card__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Placeholder shown until real art is dropped in */
+.dt-card__art--empty::after {
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border: 0.12em dashed rgb(255 255 255 / 12%);
+  border-radius: 0.6em;
+}
+
+.dt-card__art-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.8em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 22%);
+}
+
+/* ---------------------------------------------------------------- */
+/* Tag pill (e.g. "Attack Modifier")                                  */
+/* ---------------------------------------------------------------- */
+
+.dt-card__tags {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  gap: 0.4em;
+  margin: -1.1em 0 0;
+}
+
+.dt-card__tag {
+  padding: 0.18em 0.9em 0.24em;
+  border-radius: 999px;
+  border: 0.1em solid #0b0d10;
+  background: #f2f4f5;
+  color: #14181b;
+  font-size: 0.95em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- */
+/* Text plaque                                                        */
+/* ---------------------------------------------------------------- */
+
+.dt-card__text {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  padding: 0.9em 0.9em 1.05em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.22em;
+  text-align: center;
+  overflow-wrap: break-word;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 4%), transparent 30%),
+    linear-gradient(180deg, #4a4f55 0%, #383c42 45%, #2b2f34 100%);
+  color: #fff;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.22;
+  text-shadow: 0 0.06em 0.12em rgb(0 0 0 / 60%);
+}
+
+.dt-card__text p { margin: 0; }
+.dt-card__text em { font-style: italic; }
+
+/* Inline icons sit on the text baseline */
+.dt-icon {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.24em;
+  margin: 0 0.06em;
+}
+
+.dt-icon--tile { width: 1.1em; height: 1.1em; }
+
+/* ---------------------------------------------------------------- */
+/* Upgrade cards: dice row + text on top, art at the bottom           */
+/* ---------------------------------------------------------------- */
+
+.dt-card--upgrade .dt-card__inner {
+  flex-direction: column;
+}
+
+.dt-card--upgrade .dt-card__text {
+  background: none;
+  text-shadow: 0 0.08em 0.2em rgb(0 0 0 / 80%);
+  /* Clear the left rail, which the action-card layout avoids by putting the
+     text below the art. */
+  padding: 0.7em 1em 0.9em 3.2em;
+  min-height: 5em;
+}
+
+.dt-card--upgrade .dt-card__art {
+  order: 3;
+  min-height: 4em;
+}
+
+.dt-card__dice-row {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.5em 1em 0.2em;
+}
+
+.dt-card__dice-slots {
+  display: flex;
+  gap: 0.3em;
+}
+
+.dt-card__dice-slot {
+  width: 1.9em;
+  height: 1.7em;
+  border-radius: 0.35em;
+  background: linear-gradient(180deg, #6c6154, #463f36);
+  box-shadow: inset 0 -0.12em 0.2em rgb(0 0 0 / 45%);
+  display: grid;
+  place-items: center;
+}
+
+.dt-card__dice-slot .dt-icon { width: 1.3em; height: 1.3em; margin: 0; }
+
+.dt-card__combo-label {
+  padding: 0.12em 0.8em 0.18em;
+  border-radius: 999px;
+  border: 0.1em solid #0b0d10;
+  background: #f2f4f5;
+  color: #14181b;
+  font-size: 0.86em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}

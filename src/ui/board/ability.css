@@ -1,0 +1,317 @@
+/*
+ * Hero board ability cards.
+ *
+ * The printed board is a folding panel: two ability cards top-left, two
+ * bottom-left, the hero portrait and Ultimate in the middle, two top-right and
+ * an offensive + defensive pair bottom-right.
+ */
+
+.dt-ability {
+  --dt-ability-w: 210px;
+  --dt-ab-bg: var(--dt-hero-ability-bg, linear-gradient(170deg, #eaf0f4 0%, #c6d5df 45%, #a9bccb 100%));
+  --dt-ab-ink: var(--dt-hero-ability-ink, #16314d);
+  --dt-ab-edge: var(--dt-hero-ability-edge, #8fa6b8);
+
+  position: relative;
+  width: var(--dt-ability-w);
+  min-height: calc(var(--dt-ability-w) * 1.5);
+  font-size: calc(var(--dt-ability-w) / 210 * 13px);
+  font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.9em;
+  padding: 0.55em;
+  background: var(--dt-ab-bg);
+  border: 0.15em solid var(--dt-ab-edge);
+  box-shadow: 0 0.35em 0.9em rgb(0 0 0 / 35%);
+  color: var(--dt-ab-ink);
+  overflow: hidden;
+}
+
+.dt-ability--passive {
+  --dt-ab-bg: linear-gradient(170deg, #5b3b7a 0%, #43285c 55%, #2e1a41 100%);
+  --dt-ab-ink: #f4ecff;
+  --dt-ab-edge: #8a63b5;
+}
+
+.dt-ability--defensive {
+  --dt-ab-bg: linear-gradient(170deg, #4d7d33 0%, #37652a 50%, #234a1d 100%);
+  --dt-ab-ink: #f0f8e8;
+  --dt-ab-edge: #7ab34f;
+}
+
+.dt-ability--ultimate {
+  --dt-ability-w: 460px;
+  --dt-ab-bg: var(
+    --dt-hero-ultimate-bg,
+    linear-gradient(120deg, #1b2c44 0%, #16314d 50%, #0f2033 100%)
+  );
+  --dt-ab-ink: var(--dt-hero-ultimate-ink, #f2f7fb);
+  --dt-ab-edge: var(--dt-hero-ultimate-edge, #3d6a96);
+  min-height: 0;
+}
+
+/* Decorative filigree corners, as printed */
+.dt-ability::before,
+.dt-ability::after {
+  content: '';
+  position: absolute;
+  top: 0.35em;
+  width: 1.5em;
+  height: 1.5em;
+  border-top: 0.12em solid currentColor;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.dt-ability::before { left: 0.35em; border-left: 0.12em solid currentColor; border-radius: 0.5em 0 0 0; }
+.dt-ability::after  { right: 0.35em; border-right: 0.12em solid currentColor; border-radius: 0 0.5em 0 0; }
+
+.dt-ability__name {
+  margin: 0.25em 0 0.4em;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 1.28em;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.dt-ability__pill {
+  align-self: center;
+  margin-bottom: 0.5em;
+  padding: 0.1em 0.9em 0.16em;
+  border-radius: 999px;
+  border: 0.12em solid currentColor;
+  font-size: 0.92em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.dt-ability__dice {
+  display: flex;
+  justify-content: center;
+  gap: 0.22em;
+  margin-bottom: 0.45em;
+}
+
+.dt-ability__slot {
+  width: 1.85em;
+  height: 1.7em;
+  border-radius: 0.3em;
+  background: #2b2b30;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 -0.1em 0.18em rgb(0 0 0 / 50%);
+}
+
+.dt-ability__slot .dt-icon { width: 1.35em; height: 1.35em; margin: 0; }
+
+/* Empty slots on straight-based abilities */
+.dt-ability__slot--blank { background: #2b2b30; }
+
+.dt-ability__combo {
+  align-self: center;
+  margin: -0.2em 0 0.5em;
+  padding: 0.06em 0.7em 0.12em;
+  border-radius: 999px;
+  border: 0.12em solid #b8332f;
+  background: #1b1f23;
+  color: #f4f6f8;
+  font-size: 0.82em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.dt-ability__tier + .dt-ability__tier { margin-top: 0.6em; }
+
+.dt-ability__text {
+  text-align: center;
+  font-size: 1.02em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.dt-ability__text p { margin: 0 0 0.12em; }
+.dt-ability__text em { font-style: italic; }
+
+.dt-ability--passive .dt-ability__text,
+.dt-ability--defensive .dt-ability__text,
+.dt-ability--ultimate .dt-ability__text {
+  text-shadow: 0 0.06em 0.14em rgb(0 0 0 / 55%);
+}
+
+.dt-ability__footer {
+  margin-top: 0.45em;
+  padding-top: 0.45em;
+  border-top: 0.1em solid currentColor;
+  opacity: 0.95;
+}
+
+.dt-ability--inline-tiers .dt-ability__footer { text-align: center; white-space: normal; }
+
+.dt-ability__art {
+  margin-top: auto;
+  padding-top: 0.6em;
+  min-height: 3.5em;
+}
+
+/* --- Ultimate banner lays the dice row beside the text --- */
+.dt-ability--ultimate {
+  flex-direction: row;
+  align-items: center;
+  gap: 1em;
+  padding: 0.8em 1em;
+}
+
+.dt-ability--ultimate .dt-ability__name { margin: 0; font-size: 1.5em; white-space: nowrap; }
+.dt-ability--ultimate .dt-ability__text { text-align: left; flex: 1; }
+.dt-ability--ultimate .dt-ability__dice { margin: 0; }
+.dt-ability--ultimate .dt-ability__footer {
+  margin-top: 0.45em;
+  padding-top: 0.45em;
+  border-top: 0.1em solid currentColor;
+  opacity: 0.95;
+}
+
+.dt-ability--inline-tiers .dt-ability__footer { text-align: center; white-space: normal; }
+
+.dt-ability__art { display: none; }
+
+.dt-ability__ultimate-tag {
+  position: absolute;
+  left: 1em;
+  bottom: 0.2em;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.9em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.45;
+}
+
+/* ---------------------------------------------------------------- */
+/* Board layout                                                       */
+/* ---------------------------------------------------------------- */
+
+.dt-board {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background:
+    linear-gradient(160deg, rgb(0 0 0 / 35%), rgb(0 0 0 / 70%)),
+    linear-gradient(160deg, var(--dt-hero-board, #22313f) 0%, #0d141b 100%);
+  border: 1px solid rgb(255 255 255 / 8%);
+}
+
+.dt-board__panel {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 1rem;
+  align-content: start;
+}
+
+.dt-board__centre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.9rem;
+  min-width: 470px;
+  align-self: stretch;
+}
+
+.dt-board__portrait {
+  position: relative;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 12rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.8rem;
+  border: 2px dashed rgb(255 255 255 / 10%);
+  background: radial-gradient(90% 80% at 50% 25%, #2c3f52 0%, #16222e 70%);
+  color: rgb(255 255 255 / 20%);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  overflow: hidden;
+}
+
+/* With real art the dashed placeholder frame is not wanted. */
+.dt-board__portrait--art {
+  border: none;
+  background: none;
+  min-height: 16rem;
+}
+
+.dt-board__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  display: block;
+}
+
+/* The portrait assets already fade out at the top, so only a light blend in
+   to the board background is wanted here. */
+.dt-board__portrait--art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(0 0 0 / 22%) 0%, transparent 14%);
+}
+
+.dt-board__hero-name {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #eef4f8;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 60%);
+}
+
+.dt-board__quote {
+  margin: 0;
+  max-width: 34ch;
+  text-align: center;
+  font-style: italic;
+  color: rgb(238 244 248 / 65%);
+  font-size: 0.95rem;
+}
+
+
+/* ---------------------------------------------------------------- */
+/* Abilities that print each tier as one row (Smack, Fortitude, ...)  */
+/* ---------------------------------------------------------------- */
+
+.dt-ability--inline-tiers { --dt-ability-w: 250px; }
+
+.dt-ability--inline-tiers .dt-ability__tier {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.45em;
+  margin: 0 0 0.35em;
+}
+
+.dt-ability--inline-tiers .dt-ability__dice { margin: 0; gap: 0.15em; }
+
+.dt-ability--inline-tiers .dt-ability__slot {
+  width: 1.5em;
+  height: 1.4em;
+  border-radius: 0.25em;
+}
+
+.dt-ability--inline-tiers .dt-ability__slot .dt-icon { width: 1.1em; height: 1.1em; }
+
+.dt-ability--inline-tiers .dt-ability__text {
+  text-align: left;
+  font-size: 0.95em;
+  white-space: nowrap;
+}

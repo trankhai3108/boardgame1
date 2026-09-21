@@ -1,0 +1,99 @@
+import type { Action } from './actions';
+import type { GameState } from './state';
+import { teamOf } from './state';
+
+/**
+ * Who is entitled to take an action.
+ *
+ * `legalActions` says what the rules allow right now; this says whose click it
+ * is. A networked server needs both, because most of a turn belongs to the
+ * active player but defending, spending tokens and picking a target do not.
+ */
+export function canAct(state: GameState, playerIndex: number, action: Action): boolean {
+  if (state.phase === 'gameOver') return false;
+  if (playerIndex < 0 || playerIndex >= state.players.length) return false;
+
+  switch (action.type) {
+    // Spending a token is the token holder's call, whoever's turn it is.
+    case 'spendStatus':
+      return state.players[playerIndex].id === action.playerId;
+
+    case 'chooseDefense':
+      return state.attack?.defender === playerIndex;
+
+    case 'chooseTarget': {
+      const pending = state.targeting;
+      if (!pending) return false;
+      if (pending.chooser === 'attacker') return playerIndex === state.active;
+      // "Your opponents choose which of them you target" — any of them may say.
+      return pending.opponents.includes(playerIndex);
+    }
+
+    // Resolving the accumulated damage just advances the game; either side of
+    // the attack may do it once both are done acting.
+    case 'resolveAttack':
+      return playerIndex === state.active || state.attack?.defender === playerIndex;
+
+    default:
+      return playerIndex === state.active;
+  }
+}
+
+/**
+ * The view of the state a given player is allowed to see.
+ *
+ * Hands are hidden from other teams. Teammates are explicitly encouraged to
+ * share hands, so they stay visible within a team. Decks are never visible;
+ * only their size matters, so they are replaced by anonymous placeholders.
+ */
+export function redactFor(state: GameState, playerIndex: number | null): GameState {
+  const myTeam = playerIndex === null ? null : state.players[playerIndex].team;
+  return {
+    ...state,
+    players: state.players.map((player) => {
+      const sameTeam = myTeam !== null && player.team === myTeam;
+      if (sameTeam) return { ...player, deck: player.deck.map(() => 'hidden') };
+      return {
+        ...player,
+        hand: player.hand.map(() => 'hidden'),
+        deck: player.deck.map(() => 'hidden'),
+        discard: player.discard.slice(),
+      };
+    }),
+  };
+}
+
+/** Index of a player id, or -1 for a spectator. */
+export function indexOfPlayer(state: GameState, playerId: string | null): number {
+  if (!playerId) return -1;
+  return state.players.findIndex((p) => p.id === playerId);
+}
+
+/** Convenience for UIs: is it this player's move at all? */
+export function isWaitingOn(state: GameState, playerIndex: number): boolean {
+  if (state.phase === 'gameOver') return false;
+  if (state.targeting?.chooser === 'defenders') {
+    return state.targeting.opponents.includes(playerIndex);
+  }
+  if (state.phase === 'defensiveRoll' && !state.attack?.defenseResolved) {
+    return state.attack?.defender === playerIndex;
+  }
+  return playerIndex === state.active;
+}
+
+/** Teams still in the game, for scoreboards. */
+export function standings(state: GameState) {
+  return state.teams.map((team) => ({
+    id: team.id,
+    name: team.name,
+    health: team.health,
+    maxHealth: team.maxHealth,
+    out: team.health <= 0,
+    players: team.members.map((i) => state.players[i].name),
+  }));
+}
+
+/** True when `playerIndex` shares a team with the active player. */
+export function isTeammateOfActive(state: GameState, playerIndex: number): boolean {
+  return teamOf(state, playerIndex) === teamOf(state, state.active);
+}

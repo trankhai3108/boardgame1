@@ -1,0 +1,117 @@
+import type { Dict } from './types';
+
+/**
+ * English.
+ *
+ * English is the source language: hero, ability, card and status text already
+ * lives in the data files, so this dictionary only covers interface strings.
+ * Every other lookup falls through to the value carried by the data.
+ */
+export const EN: Dict = {
+  'ui.title': 'Dice Throne',
+  'ui.subtitle.play': 'Season 1 · 8 heroes',
+  'ui.subtitle.hero': '{hero} · Season 1 · complexity {complexity}/6 · weapon: {weapon}',
+
+  'ui.tab.play': 'Play',
+  'ui.tab.board': 'Hero board',
+  'ui.tab.cards': 'Hero deck',
+  'ui.tab.status': 'Status effects',
+
+  'ui.section.dice': 'Dice',
+  'ui.section.log': 'Log',
+  'ui.stackLimit': 'stack limit {n}',
+  'ui.deckNotice':
+    '{count} of 33 cards. The rules are faithful, but card names come from a Chinese round-trip and may differ from the printed cards.',
+
+  'ui.play.vs': 'vs',
+  'ui.play.seed': 'seed',
+  'ui.play.start': 'Start game',
+  'ui.play.newGame': 'New game',
+  'ui.play.round': 'round {n}',
+  'ui.play.hotseat':
+    'Hot-seat: both players share the screen. Every roll comes from the seed, so the same seed and the same choices replay the same game.',
+  'ui.play.winner': '{name} wins',
+  'ui.play.noTokens': 'no tokens',
+  'ui.play.health': 'health',
+  'ui.play.cp': 'CP',
+  'ui.play.cards': 'cards',
+  'ui.play.hand': 'Hand',
+  'ui.play.emptyHand': 'No cards in hand',
+  'ui.play.rollCount': 'roll {used} / {max}',
+  'ui.play.attackLine': '{attacker} attacks with {ability}',
+  'ui.play.dmg': '{n} dmg',
+  'ui.play.reflected': '{n} reflected',
+  'ui.play.incoming': '{n} incoming ({type})',
+
+  'ui.action.roll': 'Roll again',
+  'ui.action.noAttack': 'No attack',
+  'ui.action.nextPhase': 'Next phase',
+  'ui.action.resolve': 'Resolve damage',
+  'ui.action.payKnockdown': 'Pay 2 CP (Knockdown)',
+  'ui.action.noDefend': 'Do not defend',
+  'ui.action.defendWith': 'Defend: {ability}',
+  'ui.action.play': 'Play',
+  'ui.action.sell': 'Sell',
+
+  'ui.phase.upkeep': 'Upkeep Phase',
+  'ui.phase.income': 'Income Phase',
+  'ui.phase.main1': 'Main Phase 1',
+  'ui.phase.offensiveRoll': 'Offensive Roll Phase',
+  'ui.phase.defensiveRoll': 'Defensive Roll Phase',
+  'ui.phase.main2': 'Main Phase 2',
+  'ui.phase.discard': 'Discard Phase',
+  'ui.phase.gameOver': 'Game over',
+
+  'ui.cardType.mainPhase': 'Main Phase Action',
+  'ui.cardType.rollPhase': 'Roll Phase Action',
+  'ui.cardType.instant': 'Instant Action',
+  'ui.cardType.upgrade': 'Hero Upgrade',
+
+  'ui.tag.attackModifier': 'Attack Modifier',
+  'ui.tag.persistent': 'Persistent',
+  'ui.tag.transfer': 'Transfer',
+
+  'ui.ability.passive': 'Passive',
+  'ui.ability.ultimate': 'ULTIMATE',
+
+  'ui.art.placeholder': 'art',
+  'ui.art.portrait': 'portrait',
+  /* --- table modes and networking --- */
+  'ui.mode.1v1': '1v1',
+  'ui.mode.2v2': '2v2 teams',
+  'ui.mode.3v3': '3v3 teams',
+  'ui.mode.2v2v2': '2v2v2 teams',
+  'ui.mode.koth': 'King of the Hill',
+  'ui.phase.targetingRoll': 'Targeting Roll Phase',
+  'ui.play.you': 'you',
+  'ui.play.waitingOn': 'waiting on {name}',
+  'ui.play.targetingLine': '{attacker} must pick a target from {count} opponents',
+  'ui.play.targetRoll': 'rolled {n}',
+  'ui.play.attackerChooses': 'The attacker chooses the defender.',
+  'ui.play.defendersChoose': 'The opponents choose which of them is hit.',
+  'ui.action.rollTarget': 'Roll for target',
+  'ui.action.target': 'Target {name}',
+  'ui.net.online': 'Online',
+  'ui.net.local': 'Same screen',
+  'ui.net.yourName': 'Your name',
+  'ui.net.host': 'Host a game',
+  'ui.net.createRoom': 'Create room',
+  'ui.net.joinRoom': 'Join a game',
+  'ui.net.join': 'Join',
+  'ui.net.roomCode': 'Room code',
+  'ui.net.shareCode': 'Send the room code to the other players. They open this page, enter their name and the code, and join.',
+  'ui.net.pickHero': 'Pick your hero',
+  'ui.net.startGame': 'Start game',
+  'ui.net.waitingForHost': 'Waiting for the host to start.',
+  'ui.net.leave': 'Leave',
+  'ui.net.hostTag': 'host',
+  'ui.net.picking': 'choosing a hero',
+  'ui.net.away': 'disconnected',
+  'ui.net.resume': 'Rejoin room {code}',
+  'ui.net.namePlaceholder': 'e.g. Alex',
+  'ui.net.needName': 'Enter a name to create or join a room.',
+  'ui.net.needCode': 'Room codes are four characters.',
+  'ui.net.offline': 'No game server at {url}. Start it with:',
+
+  'ui.lang': 'Language',
+};

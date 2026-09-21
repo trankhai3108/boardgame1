@@ -1,0 +1,37 @@
+{
+  "name": "dice-thorne",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "server": "wrangler dev --port 8787",
+    "dev:all": "concurrently -n worker,web -c cyan,green \"npm:server\" \"npm:dev\"",
+    "check:worker": "tsc --noEmit -p tsconfig.worker.json",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tsx": "^4.23.15",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260921.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
