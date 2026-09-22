@@ -18,6 +18,26 @@ export const BARBARIAN_CARDS: Card[] = [
       'Roll 1 die: if Pow, heal 2 and inflict Concussion on 1 opponent.',
       'Otherwise draw 1 card.',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          {
+            on: 'pow',
+            effects: [
+              { t: 'heal', amount: 2 },
+              {
+                t: 'choose',
+                request: { pick: 'player', scope: 'opponents' },
+                effects: [{ t: 'gainStatus', status: 'concussion', target: 'chosen' }],
+              },
+            ],
+          },
+        ],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
+    ],
     art: '/cards/barbarian/barbarian-card-energetic.webp',
   },
   {
@@ -28,6 +48,14 @@ export const BARBARIAN_CARDS: Card[] = [
     copies: 1,
     text: [
       'If you have dealt at least 8 damage to the opponent, inflict Concussion.',
+    ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'when',
+        cond: { attackAtLeast: 8 },
+        effects: [{ t: 'statusOnDefender', status: 'concussion' }],
+      },
     ],
     art: '/cards/barbarian/barbarian-card-dizzy.webp',
   },
@@ -40,6 +68,15 @@ export const BARBARIAN_CARDS: Card[] = [
     text: [
       'Inflict Concussion on 1 opponent.',
     ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player', scope: 'opponents' },
+        effects: [
+            { t: 'gainStatus', status: 'concussion', amount: 1, target: 'chosen' },
+        ],
+      },
+    ],
     art: '/cards/barbarian/barbarian-card-head-blow.webp',
   },
   {
@@ -50,6 +87,14 @@ export const BARBARIAN_CARDS: Card[] = [
     copies: 1,
     text: [
       'Roll 3 dice: Heal 1 + 2×Life.',
+    ],
+    effects: [
+      { t: 'heal', amount: 1 },
+      {
+        t: 'subRoll',
+        dice: 3,
+        outcomes: [{ on: 'life', effects: [{ t: 'heal', amount: 2 }] }],
+      },
     ],
     art: '/cards/barbarian/barbarian-card-lucky.webp',
   },
@@ -62,6 +107,15 @@ export const BARBARIAN_CARDS: Card[] = [
     text: [
       'Roll 5 dice: +1 damage per Sword.',
       'Inflict Concussion.',
+    ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 5,
+        outcomes: [{ on: 'sword', effects: [{ t: 'attackBonus', amount: 1 }] }],
+      },
+      { t: 'statusOnDefender', status: 'concussion' },
     ],
     art: '/cards/barbarian/barbarian-card-more-please.webp',
   },

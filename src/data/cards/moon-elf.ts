@@ -18,6 +18,29 @@ export const MOON_ELF_CARDS: Card[] = [
       'Roll 1 die: Moon -> Inflict Blind, Entangle, and Targeted.',
       'Otherwise -> Draw 1 card.',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          {
+            on: 'moon',
+            effects: [
+              {
+                t: 'choose',
+                request: { pick: 'player', scope: 'opponents' },
+                effects: [
+                  { t: 'gainStatus', status: 'blind', target: 'chosen' },
+                  { t: 'gainStatus', status: 'entangle', target: 'chosen' },
+                  { t: 'gainStatus', status: 'targeted', target: 'chosen' },
+                ],
+              },
+            ],
+          },
+        ],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
+    ],
     art: '/cards/moon-elf/moon-elf-moon-shadow-strike.webp',
   },
   {
@@ -28,6 +51,9 @@ export const MOON_ELF_CARDS: Card[] = [
     copies: 1,
     text: [
       'Gain 1 Evasive token.',
+    ],
+    effects: [
+      { t: 'gainStatus', status: 'evasive' },
     ],
     art: '/cards/moon-elf/moon-elf-dodge.webp',
   },
@@ -41,6 +67,15 @@ export const MOON_ELF_CARDS: Card[] = [
       'Attack Modifier.',
       'Roll 5 dice: add damage equal to the number of Arrows.',
       'Inflict Entangle.',
+    ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 5,
+        outcomes: [{ on: 'arrow', effects: [{ t: 'attackBonus', amount: 1 }] }],
+      },
+      { t: 'statusOnDefender', status: 'entangle' },
     ],
     art: '/cards/moon-elf/moon-elf-volley.webp',
   },
@@ -56,6 +91,18 @@ export const MOON_ELF_CARDS: Card[] = [
       'Foot -> Inflict Entangle;',
       'Moon -> Inflict Blind.',
     ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          { on: 'arrow', effects: [{ t: 'attackBonus', amount: 2 }] },
+          { on: 'foot', effects: [{ t: 'statusOnDefender', status: 'entangle' }] },
+          { on: 'moon', effects: [{ t: 'statusOnDefender', status: 'blind' }] },
+        ],
+      },
+    ],
     art: '/cards/moon-elf/moon-elf-watch-out.webp',
   },
   {
@@ -67,6 +114,18 @@ export const MOON_ELF_CARDS: Card[] = [
     text: [
       'Gain Evasive.',
       'Inflict Blind, Entangle, and Targeted on opponent.',
+    ],
+    effects: [
+      { t: 'gainStatus', status: 'evasive' },
+      {
+        t: 'choose',
+        request: { pick: 'player', scope: 'opponents' },
+        effects: [
+            { t: 'gainStatus', status: 'blind', amount: 1, target: 'chosen' },
+            { t: 'gainStatus', status: 'entangle', amount: 1, target: 'chosen' },
+            { t: 'gainStatus', status: 'targeted', amount: 1, target: 'chosen' },
+        ],
+      },
     ],
     art: '/cards/moon-elf/moon-elf-moonlight-magic.webp',
   },

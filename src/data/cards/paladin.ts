@@ -17,6 +17,9 @@ export const PALADIN_CARDS: Card[] = [
     text: [
       'Gain 1 Crit token.',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'crit' },
+    ],
     art: '/cards/paladin/paladin-card-might.webp',
   },
   {
@@ -27,6 +30,12 @@ export const PALADIN_CARDS: Card[] = [
     copies: 1,
     text: [
       'Gain Protect, Retribution, Crit, and Accuracy (1 each).',
+    ],
+    effects: [
+      { t: 'gainStatus', status: 'protect' },
+      { t: 'gainStatus', status: 'retribution' },
+      { t: 'gainStatus', status: 'crit' },
+      { t: 'gainStatus', status: 'accuracy' },
     ],
     art: '/cards/paladin/paladin-card-consecrate.webp',
   },
@@ -42,6 +51,18 @@ export const PALADIN_CARDS: Card[] = [
       'Life -> Heal 4;',
       'Prayer -> Gain 3 CP.',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          { on: 'sword', effects: [{ t: 'drawCard', amount: 2 }] },
+          { on: 'helmet', effects: [{ t: 'heal', amount: 3 }] },
+          { on: 'life', effects: [{ t: 'heal', amount: 4 }] },
+          { on: 'prayer', effects: [{ t: 'gainCP', amount: 3 }] },
+        ],
+      },
+    ],
     art: '/cards/paladin/paladin-card-divine-favor.webp',
   },
   {
@@ -55,6 +76,21 @@ export const PALADIN_CARDS: Card[] = [
       'Helmet -> Prevent 1 damage;',
       'Life -> Prevent 2 damage;',
       'Prayer -> Gain 1 CP.',
+    ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          {
+            on: 'sword',
+            effects: [{ t: 'damage', amount: 1, undefendable: true, target: 'opponent' }],
+          },
+          { on: 'helmet', effects: [{ t: 'preventDamage', amount: 1 }] },
+          { on: 'life', effects: [{ t: 'preventDamage', amount: 2 }] },
+          { on: 'prayer', effects: [{ t: 'gainCP', amount: 1 }] },
+        ],
+      },
     ],
     art: '/cards/paladin/paladin-card-absolution.webp',
   },

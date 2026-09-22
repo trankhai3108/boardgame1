@@ -67,6 +67,29 @@ export const VI: Dict = {
   'ui.net.status.closed': 'mất kết nối',
   'ui.net.offline': 'Không thấy server ở {url}. Chạy lệnh:',
 
+  /* --- hero board and token board at the table --- */
+  'ui.play.showBoard': 'Hiện bảng hero',
+  'ui.play.hideBoard': 'Ẩn bảng hero',
+  'ui.play.ready': 'đủ xúc xắc',
+  'ui.play.tokenBoard': 'Bảng token trạng thái',
+  'ui.action.spendToken': 'dùng',
+  'ui.play.followTurn': 'Theo lượt hiện tại',
+
+  /* --- a roll or a decision the table is waiting on --- */
+  'ui.play.yourStep': 'đến lượt bạn',
+  'ui.play.theirStep': 'đang chờ {name}',
+  'ui.play.rollPrompt': 'Tung {n} xúc xắc.',
+  'ui.play.rollDone': 'Giữ viên bạn muốn rồi áp dụng kết quả.',
+  'ui.play.keepHint': 'Bấm vào một viên để giữ, rồi tung lại các viên còn lại.',
+  'ui.action.rollPending': 'Tung xúc xắc',
+  'ui.action.rerollPending': 'Tung lại (còn {n})',
+  'ui.action.confirmPending': 'Áp dụng',
+  'ui.play.pickPlayer': 'Chọn một người chơi.',
+  'ui.play.pickStatus': 'Chọn một token trạng thái.',
+  'ui.play.pickDie': 'Chọn một viên xúc xắc.',
+  'ui.play.pickValue': 'Chọn một giá trị.',
+  'ui.action.declineChoice': 'Bỏ qua',
+
   'ui.lang': 'Ngôn ngữ',
   'ui.phase.defensiveRoll': 'Pha Tung Phòng Thủ',
   'ui.phase.discard': 'Pha Bỏ Bài',

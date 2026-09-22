@@ -41,6 +41,9 @@ export const SHADOW_THIEF_CARDS: Card[] = [
     text: [
       'Gain Sneak Attack [[dagger]].',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'sneak-attack' },
+    ],
     art: '/cards/shadow-thief/shadow-thief-action-sneaky-sneaky.webp',
   },
   {
@@ -52,6 +55,22 @@ export const SHADOW_THIEF_CARDS: Card[] = [
     text: [
       'Roll 1 die: if Shadow, gain Sneak Attack + 2 CP;',
       'otherwise draw 1 card.',
+    ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          {
+            on: 'shadow',
+            effects: [
+              { t: 'gainStatus', status: 'sneak-attack' },
+              { t: 'gainCP', amount: 2 },
+            ],
+          },
+        ],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
     ],
     art: '/cards/shadow-thief/shadow-thief-action-one-with-shadows.webp',
   },
@@ -76,6 +95,15 @@ export const SHADOW_THIEF_CARDS: Card[] = [
     text: [
       'Inflict Poison on opponent.',
     ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player', scope: 'opponents' },
+        effects: [
+            { t: 'gainStatus', status: 'poison', amount: 1, target: 'chosen' },
+        ],
+      },
+    ],
     art: '/cards/shadow-thief/shadow-thief-action-poison-tip.webp',
   },
   {
@@ -87,6 +115,15 @@ export const SHADOW_THIEF_CARDS: Card[] = [
     text: [
       'Opponent discards 1.',
       'Draw 1 (2 if Sneak).',
+    ],
+    effects: [
+      { t: 'discardCard', amount: 1, target: 'opponent' },
+      {
+        t: 'when',
+        cond: { has: 'sneak-attack' },
+        effects: [{ t: 'drawCard', amount: 2 }],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
     ],
     art: '/cards/shadow-thief/shadow-thief-action-card-trick.webp',
   },
@@ -112,6 +149,14 @@ export const SHADOW_THIEF_CARDS: Card[] = [
       'Gain 2 CP.',
       'If you have Shadow [[moon]], gain 3 CP instead.',
     ],
+    effects: [
+      {
+        t: 'when',
+        cond: { has: 'shadows' },
+        effects: [{ t: 'gainCP', amount: 3 }],
+        otherwise: [{ t: 'gainCP', amount: 2 }],
+      },
+    ],
     art: '/cards/shadow-thief/shadow-thief-action-shadow-coins.webp',
   },
   {
@@ -123,6 +168,37 @@ export const SHADOW_THIEF_CARDS: Card[] = [
     text: [
       'Change the value of any 1 die.',
       'If you have Shadow, change the value of any 2 dice instead.',
+    ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'dieValue' },
+            effects: [{ t: 'setDie', fromChoice: true }],
+          },
+        ],
+      },
+      {
+        t: 'when',
+        cond: { has: 'shadows' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'die' },
+            effects: [
+              {
+                t: 'choose',
+                request: { pick: 'dieValue' },
+                effects: [{ t: 'setDie', fromChoice: true }],
+              },
+            ],
+          },
+        ],
+      },
     ],
     art: '/cards/shadow-thief/shadow-thief-action-shadow-manipulation.webp',
   },
@@ -182,6 +258,9 @@ export const SHADOW_THIEF_CARDS: Card[] = [
     copies: 1,
     text: [
       'Gain 1 Shadow token.',
+    ],
+    effects: [
+      { t: 'gainStatus', status: 'shadows' },
     ],
     art: '/cards/shadow-thief/shadow-thief-action-into-the-shadows.webp',
   },

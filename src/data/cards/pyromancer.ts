@@ -19,6 +19,10 @@ export const PYROMANCER_CARDS: Card[] = [
       'Then you may spend any amount of CP;',
       'for each CP, gain 1 Fire Mastery.',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'fire-mastery' },
+      { t: 'spendCpForStatus', status: 'fire-mastery' },
+    ],
     art: '/cards/pyromancer/pyromancer-card-turning-up-the-heat.webp',
   },
   {
@@ -32,6 +36,16 @@ export const PYROMANCER_CARDS: Card[] = [
       'Meteor: gain Fire Mastery to the cap',
       'Otherwise: draw 1 card',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          { on: 'meteor', effects: [{ t: 'gainStatus', status: 'fire-mastery', amount: 99 }] },
+        ],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
+    ],
     art: '/cards/pyromancer/pyromancer-card-infernal-embrace.webp',
   },
   {
@@ -44,6 +58,10 @@ export const PYROMANCER_CARDS: Card[] = [
       'Fire Mastery stack limit +1.',
       'Gain 2 Fire Mastery.',
     ],
+    effects: [
+      { t: 'stackLimitBonus', status: 'fire-mastery', amount: 1 },
+      { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+    ],
     art: '/cards/pyromancer/pyromancer-card-fan-the-flames.webp',
   },
   {
@@ -54,6 +72,10 @@ export const PYROMANCER_CARDS: Card[] = [
     copies: 1,
     text: [
       'This turn, your damage +1 per Fire Mastery.',
+    ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      { t: 'attackBonus', amount: { perStatus: { 'fire-mastery': 1 } } },
     ],
     art: '/cards/pyromancer/pyromancer-card-red-hot.webp',
   },
@@ -69,6 +91,19 @@ export const PYROMANCER_CARDS: Card[] = [
       'Blaze: inflict Burn',
       'Fiery Soul: gain 2 Fire Mastery',
       'Meteor: inflict Knockdown',
+    ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          { on: 'flame', effects: [{ t: 'attackBonus', amount: 3 }] },
+          { on: 'blaze', effects: [{ t: 'statusOnDefender', status: 'burn' }] },
+          { on: 'fierySoul', effects: [{ t: 'gainStatus', status: 'fire-mastery', amount: 2 }] },
+          { on: 'meteor', effects: [{ t: 'statusOnDefender', status: 'knockdown' }] },
+        ],
+      },
     ],
     art: '/cards/pyromancer/pyromancer-card-get-fired-up.webp',
   },

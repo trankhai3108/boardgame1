@@ -19,6 +19,21 @@ export const TREANT_CARDS: Card[] = [
       'Each Branch adds +1 attack damage.',
       'If this card added at least +3 damage, apply Barbed Vine.',
     ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 5,
+        outcomes: [
+          { on: 'branch', effects: [{ t: 'attackBonus', amount: 1 }] },
+          {
+            on: 'branch',
+            atLeast: 3,
+            effects: [{ t: 'statusOnDefender', status: 'barbed-vine' }],
+          },
+        ],
+      },
+    ],
     art: '/cards/treant/treant-treant-card-trample.webp',
   },
   {
@@ -54,6 +69,13 @@ export const TREANT_CARDS: Card[] = [
     text: [
       'Choose 1 player to gain Wellspring.',
     ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player' },
+        effects: [{ t: 'gainStatus', status: 'wellspring', target: 'chosen' }],
+      },
+    ],
     art: '/cards/treant/treant-treant-card-drink-deep.webp',
   },
   {
@@ -79,6 +101,13 @@ export const TREANT_CARDS: Card[] = [
       'Gain 1 CP per removed Spirit.',
       'If you removed at least 2 Spirits, up to 2 players gain Wellspring.',
     ],
+    effects: [
+      { t: 'harvestSpirits', max: 3 },
+      {
+        t: 'manual',
+        note: 'If you removed at least 2 Spirits, up to 2 players gain Wellspring.',
+      },
+    ],
     art: '/cards/treant/treant-treant-card-harvest.webp',
   },
   {
@@ -90,6 +119,9 @@ export const TREANT_CARDS: Card[] = [
     text: [
       'Grow 3 Spirits.',
     ],
+    effects: [
+      { t: 'growSpirit', amount: 3 },
+    ],
     art: '/cards/treant/treant-treant-card-cultivate.webp',
   },
   {
@@ -100,6 +132,9 @@ export const TREANT_CARDS: Card[] = [
     copies: 1,
     text: [
       'You may grow each current Spirit once, in any order.',
+    ],
+    effects: [
+      { t: 'growSpirit', amount: { perStatus: { seedling: 1, sapling: 1, dryad: 1 } } },
     ],
     art: '/cards/treant/treant-treant-card-downpour.webp',
   },
@@ -126,6 +161,17 @@ export const TREANT_CARDS: Card[] = [
       'Leaf gains Wellspring;',
       'Spirit grows 1 Spirit.',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 3,
+        outcomes: [
+          { on: 'branch', effects: [{ t: 'damage', amount: 1, target: 'allOpponents' }] },
+          { on: 'leaf', effects: [{ t: 'gainStatus', status: 'wellspring' }] },
+          { on: 'spirit', effects: [{ t: 'growSpirit', amount: 1 }] },
+        ],
+      },
+    ],
     art: '/cards/treant/treant-treant-card-soulfire.webp',
   },
   {
@@ -138,6 +184,14 @@ export const TREANT_CARDS: Card[] = [
       'Roll 1 die.',
       'If you roll Spirit, grow 4 Spirits.',
       'Otherwise, draw 1.',
+    ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [{ on: 'spirit', effects: [{ t: 'growSpirit', amount: 4 }] }],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
     ],
     art: '/cards/treant/treant-treant-card-mother-tree.webp',
   },
@@ -185,6 +239,9 @@ export const TREANT_CARDS: Card[] = [
     copies: 1,
     text: [
       'Grow 3 Spirits.',
+    ],
+    effects: [
+      { t: 'growSpirit', amount: 3 },
     ],
     art: '/cards/treant/treant-treant-card-planting.webp',
   },

@@ -58,7 +58,30 @@ export type Target =
   | 'opponent'
   | 'chosenPlayer'
   | 'allOpponents'
-  | 'attacker';
+  | 'attacker'
+  /** Whoever the player picked in the enclosing `choose` effect. */
+  | 'chosen';
+
+/**
+ * A question the engine puts to a player before the surrounding effects run.
+ *
+ * `scope` reads from the point of view of whoever is resolving the effect, so
+ * 'opponents' means *their* opponents, not the active player's.
+ */
+export type ChoiceSpec =
+  /** Pick a player. */
+  | { pick: 'player'; scope?: 'any' | 'opponents' | 'others' }
+  /** Pick one status token, on any player the scope allows. */
+  | { pick: 'status'; scope?: 'any' | 'own' | 'opponents'; polarity?: 'positive' | 'negative' }
+  /** Pick a die from the roll currently on the table. */
+  | { pick: 'die'; scope?: 'any' | 'own' | 'opponents'; optional?: boolean }
+  /**
+   * Pick a pip value.
+   *
+   * 'any' offers 1-6, 'shown' only values already on the table (Me Too!), and
+   * 'adjacent' only one step either side of the die just picked (Flick!).
+   */
+  | { pick: 'dieValue'; mode?: 'any' | 'shown' | 'adjacent' };
 
 /**
  * A structured, executable description of what an ability or card does.
@@ -72,12 +95,28 @@ export type Effect =
   | { t: 'gainCP'; amount: number | DynamicAmount; target?: Target }
   | { t: 'drawCard'; amount: number; target?: Target }
   | { t: 'discardCard'; amount: number; target?: Target }
-  | { t: 'gainStatus'; status: string; amount?: number; target?: Target }
+  | { t: 'gainStatus'; status: string; amount?: number | DynamicAmount; target?: Target }
   | { t: 'removeStatus'; status?: string; amount?: number; target?: Target }
+  /** Strip every token from the target, e.g. "What Status?". */
+  | { t: 'removeAllStatus'; target?: Target }
   | { t: 'transferStatus'; from: Target; to: Target; amount: number }
   | { t: 'setHealth'; amount: number; target?: Target }
-  /** Roll extra dice, then apply per-outcome effects (e.g. Holy Light). */
-  | { t: 'subRoll'; dice: number; outcomes: SubRollOutcome[] }
+  /**
+   * Roll extra dice, then apply per-outcome effects (e.g. Holy Light).
+   *
+   * The dice are rolled by hand: resolution suspends until the player whose
+   * effect this is has rolled them, and `rerolls` says how many of those dice
+   * they may send back before the result stands.
+   */
+  | {
+      t: 'subRoll';
+      dice: number;
+      outcomes: SubRollOutcome[];
+      /** Applied once per die that matched no outcome. */
+      otherwise?: Effect[];
+      /** Dice the player may re-roll before the result is applied. */
+      rerolls?: number;
+    }
   /** Re-roll dice, optionally at a CP cost (e.g. Tithe). */
   | { t: 'reroll'; dice: number }
   /** Make this attack undefendable. */
@@ -86,14 +125,58 @@ export type Effect =
   | { t: 'prevent'; amount: number | DynamicAmount }
   /** Defensive abilities: prevent ceil(subtotal / divisor) of incoming damage. */
   | { t: 'preventFraction'; divisor: number }
+
+  /* --- asked of a player before the nested effects run --- */
+  /** Put `request` to the resolving player, then run `effects` with the answer. */
+  | { t: 'choose'; request: ChoiceSpec; effects: Effect[] }
+
+  /** Run `effects` only when the condition holds, else `otherwise`. */
+  | { t: 'when'; cond: Condition; effects: Effect[]; otherwise?: Effect[] }
+
+  /* --- act on the dice currently on the table --- */
+  /** Set the chosen die to `value`, or nudge it by `delta`, clamped to 1-6. */
+  | { t: 'setDie'; value?: number; delta?: number; fromChoice?: boolean }
+  /** Re-roll the chosen die. */
+  | { t: 'rerollDie' }
+  /** Grant an extra Roll Attempt in the named phase. */
+  | { t: 'extraRollAttempt'; phase: 'offensive' | 'defensive'; target?: Target }
+
+  /* --- act on the attack currently pending --- */
+  /** Prevent flat damage from the pending attack, e.g. "Next Time!". */
+  | { t: 'preventDamage'; amount: number | DynamicAmount }
+  /** Add damage to the pending attack — an Attack Modifier card. */
+  | { t: 'attackBonus'; amount: number | DynamicAmount }
+  /** Inflict a status on whoever the pending attack is aimed at. */
+  | { t: 'statusOnDefender'; status: string; amount?: number }
+
+  /* --- Treant's spirit ladder --- */
+  /** Grow N spirits: promote sapling -> dryad, seedling -> sapling, else plant. */
+  | { t: 'growSpirit'; amount: number | DynamicAmount }
+  /** Remove up to N spirits, lowest first, for 1 CP each. */
+  | { t: 'harvestSpirits'; max: number }
+
+  /* --- misc --- */
+  /** Raise a status effect's stack limit for the rest of the game. */
+  | { t: 'stackLimitBonus'; status: string; amount: number }
+  /** Spend any amount of CP, gaining `status` once per CP spent. */
+  | { t: 'spendCpForStatus'; status: string }
   /** Anything not yet modelled: the engine surfaces it for manual resolution. */
   | { t: 'manual'; note: string };
+
+/** A test an effect list can be gated on. */
+export type Condition =
+  /** The resolving player holds at least `min` (default 1) of a token. */
+  | { has: string; min?: number }
+  /** The attack on the table already deals at least this much. */
+  | { attackAtLeast: number };
 
 /** Per-face results of a sub-roll, keyed by the symbol that came up. */
 export interface SubRollOutcome {
   /** Symbol that triggers this outcome, or a pip value. */
   on: DieSymbol | number;
   effects: Effect[];
+  /** Require this many matching dice before the effects fire once (default 1). */
+  atLeast?: number;
 }
 
 /**
@@ -105,6 +188,10 @@ export interface DynamicAmount {
   base?: number;
   /** Multiplier applied per die showing each symbol. */
   perSymbol?: Record<DieSymbol, number>;
+  /** Multiplier applied per token the resolving player holds. */
+  perStatus?: Record<string, number>;
+  /** Halve the total, rounding up — as all division in Dice Throne does. */
+  halve?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -156,6 +243,22 @@ export type CardType =
 /** Extra pill rendered above the card text, e.g. 'Attack Modifier'. */
 export type CardTag = 'Attack Modifier' | 'Persistent' | 'Transfer';
 
+/**
+ * Extra conditions on when a card is playable.
+ *
+ * `who` reads against the pending attack, so an Instant tagged
+ * `{ who: 'defender' }` is offered only to whoever is being hit.
+ */
+export interface CardWindow {
+  who?: 'anyone' | 'attacker' | 'defender';
+  /** Only while an attack is waiting to be resolved. */
+  needsAttack?: boolean;
+  /** Only while there are dice on the table. */
+  needsRoll?: boolean;
+  /** Only while the roll on the table belongs to the player. */
+  needsOwnRoll?: boolean;
+}
+
 export interface Card {
   /** Unique within a hero deck, e.g. 'paladin-tithe-ii'. */
   id: string;
@@ -181,6 +284,8 @@ export interface Card {
 
   /** Executable form of the card's effect. */
   effects?: Effect[];
+  /** Narrows when the card may be played, beyond what `type` implies. */
+  window?: CardWindow;
   /** Art asset path, relative to /public. Undefined renders a CSS placeholder. */
   art?: string;
 }

@@ -18,6 +18,23 @@ export const MONK_CARDS: Card[] = [
       'Roll 1 die: if Lotus, gain 2 Chi, Evasive and Cleanse;',
       'otherwise draw 1 card.',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          {
+            on: 'lotus',
+            effects: [
+              { t: 'gainStatus', status: 'chi', amount: 2 },
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'gainStatus', status: 'cleanse' },
+            ],
+          },
+        ],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
+    ],
     art: '/cards/monk/monk-card-enlightenment.webp',
   },
   {
@@ -29,6 +46,9 @@ export const MONK_CARDS: Card[] = [
     text: [
       'Gain 2 Chi.',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'chi', amount: 2 },
+    ],
     art: '/cards/monk/monk-card-inner-peace.webp',
   },
   {
@@ -39,6 +59,9 @@ export const MONK_CARDS: Card[] = [
     copies: 1,
     text: [
       'Gain 5 Chi.',
+    ],
+    effects: [
+      { t: 'gainStatus', status: 'chi', amount: 5 },
     ],
     art: '/cards/monk/monk-card-deep-thought.webp',
   },
@@ -52,6 +75,18 @@ export const MONK_CARDS: Card[] = [
       'Gain 1 Chi, Evasive and Cleanse;',
       'inflict Stun on 1 opponent.',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'chi' },
+      { t: 'gainStatus', status: 'evasive' },
+      { t: 'gainStatus', status: 'cleanse' },
+      {
+        t: 'choose',
+        request: { pick: 'player', scope: 'opponents' },
+        effects: [
+            { t: 'gainStatus', status: 'stun', amount: 1, target: 'chosen' },
+        ],
+      },
+    ],
     art: '/cards/monk/monk-card-buddha-light.webp',
   },
   {
@@ -62,6 +97,15 @@ export const MONK_CARDS: Card[] = [
     copies: 1,
     text: [
       'Inflict Stun on 1 opponent.',
+    ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player', scope: 'opponents' },
+        effects: [
+            { t: 'gainStatus', status: 'stun', amount: 1, target: 'chosen' },
+        ],
+      },
     ],
     art: '/cards/monk/monk-card-palm-strike.webp',
   },

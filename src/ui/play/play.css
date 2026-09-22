@@ -428,3 +428,282 @@
 .conn--connecting,
 .conn--reconnecting { color: #e8c34a; }
 .conn--closed { color: #e8756f; }
+
+/* ------------------------------------------------------------------ */
+/* Pending step: a roll or a decision the table is waiting on           */
+/* ------------------------------------------------------------------ */
+
+.pending {
+  margin: 0.9rem 0;
+  padding: 0.9rem;
+  border-radius: 0.7rem;
+  border: 1px dashed var(--line);
+  background: #0d151c;
+}
+
+/* The seat that owes the step gets a warmer frame than the onlookers. */
+.pending--yours {
+  border-style: solid;
+  border-color: #d9a441;
+  box-shadow: 0 0 0 1px #d9a44133 inset;
+}
+
+.pending__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.pending__source {
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #e8c877;
+}
+
+.pending__prompt { margin: 0.5rem 0 0; font-size: 0.95rem; }
+
+.die--sub { width: 3.2rem; height: 3.2rem; border-color: #d9a441; }
+.die--sub:disabled { opacity: 1; cursor: default; }
+
+.die--blank {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 0.7rem;
+  border: 1px dashed var(--line);
+  background: #0a1016;
+  display: inline-block;
+}
+
+/* --- choices --- */
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #4d7ba7;
+  background: #16242f;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.choice:hover:not(:disabled) { background: #1d3040; }
+.choice:disabled { opacity: 0.45; cursor: not-allowed; }
+.choice .dt-icon { width: 1.3rem; height: 1.3rem; margin: 0; }
+
+.choice__avatar { width: 1.5rem; height: 1.5rem; border-radius: 50%; object-fit: cover; }
+.choice__owner { color: var(--muted); font-size: 0.85rem; }
+
+/* ------------------------------------------------------------------ */
+/* Hero board at the table                                              */
+/* ------------------------------------------------------------------ */
+
+.hero-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.hero-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.hero-panel__portrait {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.hero-panel__title { display: grid; }
+
+.hero-panel__name {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Push the collapse button to the far edge. */
+.hero-panel__head > .play__button { margin-left: auto; }
+
+.dice-key { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+
+.dice-key__face {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--line);
+  background: #0e161d;
+  font-size: 0.8rem;
+}
+
+.dice-key__face .dt-icon { width: 1.1rem; height: 1.1rem; margin: 0; }
+
+.hero-panel__abilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.hero-panel__slot { position: relative; }
+
+/* An ability the dice already satisfy is the one worth looking at. */
+.hero-panel__slot--live {
+  outline: 2px solid #4fd1c5;
+  outline-offset: 3px;
+  border-radius: 0.5rem;
+}
+
+.hero-panel__level {
+  position: absolute;
+  top: -0.5rem;
+  left: -0.5rem;
+  min-width: 1.4rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 999px;
+  background: #2c4761;
+  border: 1px solid #4d7ba7;
+  color: #fff;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.hero-panel__ready {
+  position: absolute;
+  top: -0.6rem;
+  right: -0.4rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #0f3c39;
+  border: 1px solid #4fd1c5;
+  color: #7defdf;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- token board --- */
+
+.token-board { margin-top: 1.2rem; }
+
+.token-board__title {
+  margin: 0 0 0.6rem;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.token-board__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.55rem;
+}
+
+.token-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--line);
+  background: #0e161d;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+/* Nothing in front of you yet: present, but out of the way. */
+.token-card--empty { opacity: 0.45; }
+.token-card--held { border-color: #3d5d78; background: #101c26; }
+.token-card--positive.token-card--held { border-color: #3f7d63; }
+.token-card--negative.token-card--held { border-color: #8a4b4b; }
+
+.token-card--spendable {
+  cursor: pointer;
+  border-color: #4fd1c5;
+  box-shadow: 0 0 0 1px #4fd1c533 inset;
+}
+
+.token-card--spendable:hover { background: #12262a; }
+.token-card:disabled { cursor: default; }
+
+.token-card__head { display: flex; align-items: center; gap: 0.4rem; }
+.token-card__head .dt-icon { width: 1.4rem; height: 1.4rem; margin: 0; }
+
+.token-card__count {
+  margin-left: auto;
+  min-width: 1.3rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: #1b2b38;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.token-card__summary { color: var(--muted); font-size: 0.8rem; line-height: 1.3; }
+
+.token-card__spend {
+  justify-self: start;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7defdf;
+}
+
+/* ------------------------------------------------------------------ */
+/* Hand                                                                 */
+/* ------------------------------------------------------------------ */
+
+.hand__seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+}
+
+.hand__seat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.hand__seat--on { border-color: #4d7ba7; color: var(--ink); background: #16242f; }
+
+/* A seat holding something it could play right now. */
+.hand__seat--armed { color: #7defdf; }
+.hand__dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: #4fd1c5; }
+
+.hand__card--playable { outline: 2px solid #4fd1c5; outline-offset: 2px; border-radius: 0.5rem; }

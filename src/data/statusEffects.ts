@@ -97,3 +97,23 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
       'the Attacker.',
   },
 };
+
+/**
+ * Looks a token up wherever it is defined.
+ *
+ * A player can be holding a token their own hero never prints — Concussion put
+ * there by a Barbarian, say — so the board falls back to the shared catalogue
+ * and then to whichever hero brought it.
+ */
+export function findStatus(
+  statusId: string,
+  heroes: Iterable<{ statusEffects: StatusEffect[] }>,
+): StatusEffect | undefined {
+  const shared = SHARED_STATUS_EFFECTS[statusId];
+  if (shared) return shared;
+  for (const hero of heroes) {
+    const own = hero.statusEffects.find((s) => s.id === statusId);
+    if (own) return own;
+  }
+  return undefined;
+}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { HEROES } from '../../data/heroes';
 import type { Action } from '../../engine/actions';
 import { isWaitingOn } from '../../engine/authority';
@@ -9,6 +9,7 @@ import {
   RULES,
   healthOf,
   teamOf,
+  topPending,
   type GameState,
   type PlayerState,
 } from '../../engine/state';
@@ -20,6 +21,8 @@ import { K } from '../../i18n/types';
 import { CardView } from '../card/Card';
 import { STATUS_ICONS, SYMBOL_ICONS } from '../card/iconRegistry';
 import { renderMarkup } from '../card/markup';
+import { HeroPanel } from './HeroPanel';
+import { PendingPanel } from './PendingPanel';
 import './play.css';
 
 const lookup: HeroLookup = (id) => HEROES[id];
@@ -157,6 +160,7 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   const activeHero = HEROES[active.heroId];
   const attack = game.attack;
   const targeting = game.targeting;
+  const pending = topPending(game);
 
   /** On a shared screen every seat is playable; online, only your own. */
   const controls = (index: number) => you < 0 || you === index;
@@ -177,12 +181,17 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   const matches = game.roll ? bestAbilities(activeHero, game.roll.dice) : [];
   const preview = attack ? resolveDamage(attack.incoming, attack.type, attack.modifiers) : null;
 
-  const actingPlayer =
-    attack && !attack.defenseResolved
+  const actingPlayer = pending
+    ? game.players[pending.who]
+    : attack && !attack.defenseResolved
       ? game.players[attack.defender]
       : targeting?.chooser === 'defenders'
         ? game.players[targeting.opponents[0]]
         : active;
+
+  // The board below the table is yours online, and follows whoever is acting
+  // on a shared screen so the right hero is always face up.
+  const boardSeat = you >= 0 ? you : game.players.indexOf(actingPlayer);
 
   const winnerTeam = game.teams.find((team) => team.id === game.winner);
 
@@ -296,12 +305,23 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
             </div>
           ) : null}
 
+          {pending ? (
+            <PendingPanel
+              game={game}
+              step={pending}
+              options={options}
+              yours={controls(pending.who)}
+              onAction={onAction}
+            />
+          ) : null}
+
           {game.roll ? (
             <div className="dice-row">
               {game.roll.dice.map((die) => {
                 const face = activeHero.dieFaces[die.value - 1];
                 const Icon = SYMBOL_ICONS[face.symbol];
                 const canToggle =
+                  !pending &&
                   myTurn &&
                   controls(game.active) &&
                   game.roll!.attemptsUsed < game.roll!.maxAttempts;
@@ -322,7 +342,7 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
             </div>
           ) : null}
 
-          {abilityOptions.length > 0 && myTurn ? (
+          {abilityOptions.length > 0 && myTurn && !pending ? (
             <div className="ability-list">
               {abilityOptions.map((option) => {
                 if (option.type !== 'activateAbility') return null;
@@ -455,6 +475,21 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
 
       <Hand game={game} you={you} options={options} onAction={onAction} />
 
+      {boardSeat >= 0 ? (
+        <HeroPanel
+          game={game}
+          index={boardSeat}
+          spendable={spendableFor(boardSeat)}
+          onSpend={(statusId) =>
+            onAction({
+              type: 'spendStatus',
+              playerId: game.players[boardSeat].id,
+              statusId,
+            })
+          }
+        />
+      ) : null}
+
       <h2 className="section-title">{t('ui.section.log')}</h2>
       <div className="log">
         {game.log
@@ -472,7 +507,13 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   );
 }
 
-/** The hand of whoever this screen belongs to — the active seat when shared. */
+/**
+ * The hand of whoever this screen belongs to.
+ *
+ * Instants and Roll Phase cards come from any seat, so a shared screen offers
+ * a tab per player rather than only the one whose turn it is — otherwise the
+ * defender could never answer an attack with one.
+ */
 function Hand({
   game,
   you,
@@ -485,16 +526,52 @@ function Hand({
   onAction: (action: Action) => void;
 }) {
   const { t } = useI18n();
-  const index = you < 0 ? game.active : you;
+  const shared = you < 0;
+  const [seat, setSeat] = useState<number | null>(null);
+
+  // On a shared screen, follow the turn unless the reader picked a seat.
+  const index = shared ? (seat ?? game.active) : you;
   const player = game.players[index];
   const hero = HEROES[player.heroId];
-  const mine = you < 0 || you === game.active;
+
+  /** Seats holding a card they could play right now, for the tab badges. */
+  const armed = new Set(
+    options.flatMap((o) => (o.type === 'playCard' && o.playerId ? [o.playerId] : [])),
+  );
 
   return (
     <>
       <h2 className="section-title">
         {t('ui.play.hand')} · {player.name}
       </h2>
+
+      {shared ? (
+        <div className="hand__seats">
+          {game.players.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`hand__seat${i === index ? ' hand__seat--on' : ''}${
+                armed.has(p.id) ? ' hand__seat--armed' : ''
+              }`}
+              onClick={() => setSeat(i)}
+            >
+              {p.name}
+              {armed.has(p.id) ? <span className="hand__dot" /> : null}
+            </button>
+          ))}
+          {seat !== null ? (
+            <button
+              type="button"
+              className="hand__seat"
+              onClick={() => setSeat(null)}
+            >
+              {t('ui.play.followTurn')}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {player.hand.length === 0 ? (
         <p className="app__subtitle">{t('ui.play.emptyHand')}</p>
       ) : (
@@ -508,19 +585,29 @@ function Hand({
                 </div>
               );
             }
-            const canPlay =
-              mine && options.some((o) => o.type === 'playCard' && o.cardId === instanceId);
+            const canPlay = options.some(
+              (o) =>
+                o.type === 'playCard' &&
+                o.cardId === instanceId &&
+                (o.playerId ?? player.id) === player.id,
+            );
             const canSell =
-              mine && options.some((o) => o.type === 'sellCard' && o.cardId === instanceId);
+              index === game.active &&
+              options.some((o) => o.type === 'sellCard' && o.cardId === instanceId);
             return (
-              <div key={instanceId} className="hand__card">
+              <div
+                key={instanceId}
+                className={`hand__card${canPlay ? ' hand__card--playable' : ''}`}
+              >
                 <CardView card={card} width={190} />
                 <div className="hand__actions">
                   <button
                     type="button"
                     className="play__button"
                     disabled={!canPlay}
-                    onClick={() => onAction({ type: 'playCard', cardId: instanceId })}
+                    onClick={() =>
+                      onAction({ type: 'playCard', cardId: instanceId, playerId: player.id })
+                    }
                   >
                     {t('ui.action.play')} ({card.cp})
                   </button>

@@ -1,5 +1,6 @@
 import type { AbilityLevel, Die, Effect, Hero } from './types';
 import type { DamageModifier, DamageType } from './damage';
+import type { ChoiceAnswer, EffectOutcome, EffectRequest } from './effects';
 import { createRng, shuffle, type RngState } from './rng';
 
 /** Fixed numbers from the rulebook. */
@@ -101,8 +102,12 @@ export interface PlayerState {
   discard: string[];
   /** Token counts, keyed by status effect id. */
   statuses: Record<string, number>;
+  /** Stack limits raised above the printed one, keyed by status effect id. */
+  stackLimits: Record<string, number>;
   /** Current level of each ability slot, keyed by ability id. */
   abilityLevels: Record<string, AbilityLevel>;
+  /** Roll Attempts owed by a card, spent when the matching phase opens. */
+  extraAttempts: { offensive: number; defensive: number };
   /** Statuses gained this turn — Chi may not be spent for damage on these. */
   gainedThisTurn: string[];
   /** Barbed Vine damage already taken this turn, capped per its rules. */
@@ -152,6 +157,60 @@ export interface PendingAttack {
   defenseResolved: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/* Pending steps                                                        */
+/* ------------------------------------------------------------------ */
+
+/** Enough of an `EffectContext` to rebuild it after a suspension. */
+export interface PendingCtx {
+  self: number;
+  target: number;
+  heroId: string;
+  usedDice: Die[];
+  defensive: boolean;
+  chosen: ChoiceAnswer | null;
+}
+
+/** Where a finished effect run sends its outcome. */
+export type PendingSink =
+  /** An Offensive Ability mid-activation. */
+  | { kind: 'ability'; abilityId: string; tierIndex: number; defender: number }
+  /** A Defensive Ability mid-resolution. */
+  | { kind: 'defense'; abilityId: string }
+  /** An action card mid-resolution. */
+  | { kind: 'card'; cardId: string; cardName: string; playerIndex: number }
+  /** A status token being spent, which resolves from the die it rolls. */
+  | { kind: 'status'; statusId: string; playerIndex: number };
+
+/**
+ * A step the game is waiting on one player to take.
+ *
+ * Sub-rolls and choices both stop an effect list part-way: the dice belong to
+ * the player who has to throw them and the choice is theirs to make, so the
+ * engine parks everything left to do here and picks it up again afterwards.
+ */
+export interface PendingStep {
+  /** Index of the player who must act. */
+  who: number;
+  /** Ability, card or token that asked — shown in the prompt. */
+  source: string;
+  request: EffectRequest;
+  /** Dice thrown so far, for a roll request. */
+  dice: Die[];
+  /** True once the dice have been thrown at least once. */
+  rolled: boolean;
+  /** Re-rolls still on offer. */
+  rerolls: number;
+  /** Effects still owed once this step completes. */
+  rest: Effect[];
+  /** Leading entries of `rest` that a declined optional choice discards. */
+  bodyLength: number;
+  /** Everything accumulated before the suspension. */
+  outcome: EffectOutcome;
+  ctx: PendingCtx;
+  sink: PendingSink;
+}
+
 export interface LogEntry {
   round: number;
   phase: Phase;
@@ -171,6 +230,14 @@ export interface GameState {
   /** Set while the Targeting Roll Phase is deciding who gets hit. */
   targeting: PendingActivation | null;
   attack: PendingAttack | null;
+  /**
+   * Steps waiting on a player, innermost last.
+   *
+   * A stack rather than a single slot because an Instant played *into* a
+   * pending defence roll can itself stop to ask a question; answering it
+   * uncovers the roll that was waiting underneath.
+   */
+  pending: PendingStep[];
   /** Extra Offensive Roll Phases owed to the active player by Stun. */
   extraOrp: number;
   rng: RngState;
@@ -235,7 +302,9 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
       deck,
       discard: [],
       statuses: {},
+      stackLimits: {},
       abilityLevels: Object.fromEntries(hero.abilities.map((a) => [a.id, a.level])),
+      extraAttempts: { offensive: 0, defensive: 0 },
       gainedThisTurn: [],
       barbedVineDamageThisTurn: 0,
       hasTakenTurn: false,
@@ -265,6 +334,7 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
     roll: null,
     targeting: null,
     attack: null,
+    pending: [],
     extraOrp: 0,
     rng,
     log: [{ round: 1, phase: 'main1', message: `Game start (${MODES[mode].label})` }],
@@ -292,6 +362,23 @@ export function isAlive(state: GameState, playerIndex: number): boolean {
 
 export function statusCount(player: PlayerState, statusId: string): number {
   return player.statuses[statusId] ?? 0;
+}
+
+/**
+ * How many of a token a player may hold.
+ *
+ * The printed limit comes from the hero that brought the token into the game;
+ * a card such as Fan the Flames raises it for its owner only.
+ */
+export function limitFor(
+  _state: GameState,
+  holder: PlayerState,
+  hero: Hero,
+  statusId: string,
+): number {
+  const raised = holder.stackLimits[statusId];
+  if (raised !== undefined) return raised;
+  return hero.statusEffects.find((s) => s.id === statusId)?.stackLimit ?? 1;
 }
 
 export function addStatus(player: PlayerState, statusId: string, amount: number, limit: number): void {
@@ -348,6 +435,11 @@ export function opponentsOf(state: GameState, index: number): number[] {
 /** First available opponent, used where a single target is implied. */
 export function opponentOf(state: GameState, index: number): number {
   return opponentsOf(state, index)[0] ?? index;
+}
+
+/** The step currently blocking play, if any. */
+export function topPending(state: GameState): PendingStep | null {
+  return state.pending[state.pending.length - 1] ?? null;
 }
 
 /** Teammates of `index`, excluding themselves. */

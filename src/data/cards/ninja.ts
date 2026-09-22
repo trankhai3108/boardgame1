@@ -17,6 +17,9 @@ export const NINJA_CARDS: Card[] = [
     text: [
       'Gain 1 Ninjutsu.',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'ninjutsu' },
+    ],
     art: '/cards/ninja/ninja-ninja-card-training.webp',
   },
   {
@@ -77,6 +80,14 @@ export const NINJA_CARDS: Card[] = [
       'Roll 5 dice;',
       'each Ninjatō adds +1 attack damage.',
     ],
+    window: { needsAttack: true, who: 'attacker' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 5,
+        outcomes: [{ on: 'ninjato', effects: [{ t: 'attackBonus', amount: 1 }] }],
+      },
+    ],
     art: '/cards/ninja/ninja-ninja-card-shuriken.webp',
   },
   {
@@ -89,6 +100,18 @@ export const NINJA_CARDS: Card[] = [
       'Play after being attacked;',
       'reduce damage or gain Smoke Bomb by die result.',
     ],
+    window: { needsAttack: true, who: 'defender' },
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          { on: 'ninjato', effects: [{ t: 'preventDamage', amount: 3 }] },
+          { on: 'shuriken', effects: [{ t: 'preventDamage', amount: 5 }] },
+          { on: 'mask', effects: [{ t: 'gainStatus', status: 'smoke-bomb' }] },
+        ],
+      },
+    ],
     art: '/cards/ninja/ninja-ninja-card-escape.webp',
   },
   {
@@ -100,6 +123,15 @@ export const NINJA_CARDS: Card[] = [
     text: [
       'Apply 1 Delayed Poison.',
     ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player', scope: 'opponents' },
+        effects: [
+            { t: 'gainStatus', status: 'delayed-poison', amount: 1, target: 'chosen' },
+        ],
+      },
+    ],
     art: '/cards/ninja/ninja-ninja-card-poison-dart.webp',
   },
   {
@@ -110,6 +142,9 @@ export const NINJA_CARDS: Card[] = [
     copies: 1,
     text: [
       'Deal 1 undefendable damage.',
+    ],
+    effects: [
+      { t: 'damage', amount: 1, undefendable: true, target: 'opponent' },
     ],
     art: '/cards/ninja/ninja-ninja-card-knife-fan.webp',
   },
@@ -170,6 +205,9 @@ export const NINJA_CARDS: Card[] = [
     text: [
       'Gain Smoke Bomb.',
     ],
+    effects: [
+      { t: 'gainStatus', status: 'smoke-bomb' },
+    ],
     art: '/cards/ninja/ninja-ninja-card-vanish.webp',
   },
   {
@@ -182,6 +220,22 @@ export const NINJA_CARDS: Card[] = [
       'Roll 1 die.',
       'If you roll Mask, gain Smoke Bomb and 2 Ninjutsu.',
       'Otherwise, draw 1.',
+    ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          {
+            on: 'mask',
+            effects: [
+              { t: 'gainStatus', status: 'smoke-bomb' },
+              { t: 'gainStatus', status: 'ninjutsu', amount: 2 },
+            ],
+          },
+        ],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
     ],
     art: '/cards/ninja/ninja-ninja-card-dojo.webp',
   },

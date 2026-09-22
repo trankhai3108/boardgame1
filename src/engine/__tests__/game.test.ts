@@ -339,6 +339,17 @@ function botAction(state: GameState): Action | null {
   const options = legalActions(state, lookup);
   if (options.length === 0) return null;
 
+  // A pending roll or choice blocks everything else: settle it first.
+  const step = state.pending[state.pending.length - 1];
+  if (step) {
+    return (
+      options.find((a) => a.type === 'rollPending') ??
+      options.find((a) => a.type === 'confirmPending') ??
+      options.find((a) => a.type === 'answerChoice') ??
+      options[0]
+    );
+  }
+
   if (state.phase === 'targetingRoll') {
     return options.find((a) => a.type === 'rollTarget') ?? options[0];
   }

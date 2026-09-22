@@ -116,5 +116,28 @@ export const EN: Dict = {
   'ui.net.status.closed': 'disconnected',
   'ui.net.offline': 'No game server at {url}. Start it with:',
 
+  /* --- hero board and token board at the table --- */
+  'ui.play.showBoard': 'Show board',
+  'ui.play.hideBoard': 'Hide board',
+  'ui.play.ready': 'ready',
+  'ui.play.tokenBoard': 'Status tokens',
+  'ui.action.spendToken': 'spend',
+  'ui.play.followTurn': 'Follow the turn',
+
+  /* --- a roll or a decision the table is waiting on --- */
+  'ui.play.yourStep': 'your move',
+  'ui.play.theirStep': 'waiting on {name}',
+  'ui.play.rollPrompt': 'Roll {n} dice.',
+  'ui.play.rollDone': 'Keep what you want, then apply the result.',
+  'ui.play.keepHint': 'Click a die to keep it, then re-roll the rest.',
+  'ui.action.rollPending': 'Roll',
+  'ui.action.rerollPending': 'Re-roll ({n} left)',
+  'ui.action.confirmPending': 'Apply',
+  'ui.play.pickPlayer': 'Pick a player.',
+  'ui.play.pickStatus': 'Pick a status token.',
+  'ui.play.pickDie': 'Pick a die.',
+  'ui.play.pickValue': 'Pick a value.',
+  'ui.action.declineChoice': 'Skip',
+
   'ui.lang': 'Language',
 };

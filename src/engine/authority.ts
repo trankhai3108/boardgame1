@@ -1,6 +1,6 @@
 import type { Action } from './actions';
 import type { GameState } from './state';
-import { teamOf } from './state';
+import { teamOf, topPending } from './state';
 
 /**
  * Who is entitled to take an action.
@@ -13,10 +13,28 @@ export function canAct(state: GameState, playerIndex: number, action: Action): b
   if (state.phase === 'gameOver') return false;
   if (playerIndex < 0 || playerIndex >= state.players.length) return false;
 
+  // A roll or a decision the engine stopped for belongs to one seat, and
+  // nothing else may be done until they have settled it.
+  const pending = topPending(state);
+
   switch (action.type) {
     // Spending a token is the token holder's call, whoever's turn it is.
     case 'spendStatus':
       return state.players[playerIndex].id === action.playerId;
+
+    // Instants and Roll Phase cards come from any hand, so the seat named on
+    // the action is the one that has to match.
+    case 'playCard':
+      return action.playerId
+        ? state.players[playerIndex].id === action.playerId
+        : playerIndex === state.active;
+
+    case 'rollPending':
+    case 'rerollPending':
+    case 'keepPending':
+    case 'confirmPending':
+    case 'answerChoice':
+      return pending !== null && pending.who === playerIndex;
 
     case 'chooseDefense':
       return state.attack?.defender === playerIndex;
@@ -35,6 +53,8 @@ export function canAct(state: GameState, playerIndex: number, action: Action): b
       return playerIndex === state.active || state.attack?.defender === playerIndex;
 
     default:
+      // Everything else waits behind a pending step.
+      if (pending) return false;
       return playerIndex === state.active;
   }
 }
@@ -72,6 +92,8 @@ export function indexOfPlayer(state: GameState, playerId: string | null): number
 /** Convenience for UIs: is it this player's move at all? */
 export function isWaitingOn(state: GameState, playerIndex: number): boolean {
   if (state.phase === 'gameOver') return false;
+  const pending = topPending(state);
+  if (pending) return pending.who === playerIndex;
   if (state.targeting?.chooser === 'defenders') {
     return state.targeting.opponents.includes(playerIndex);
   }

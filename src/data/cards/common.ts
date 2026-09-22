@@ -4,6 +4,10 @@
  * Generated from zhuanggenhua/BoardGame (MIT). Rules text is faithful;
  * card names there are a Chinese round-trip and do not always match the
  * names printed on the English cards.
+ *
+ * `effects` is the executable form of the printed text, and `window` narrows
+ * when the card may be played: a Roll Phase card needs dice on the table, and
+ * an Instant that prevents damage needs an attack to prevent it from.
  */
 import type { Card } from '../../engine/types';
 
@@ -17,6 +21,10 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Set 1 of your dice to 6.',
     ],
+    window: { needsRoll: true },
+    effects: [
+      { t: 'choose', request: { pick: 'die', scope: 'own' }, effects: [{ t: 'setDie', value: 6 }] },
+    ],
     art: '/cards/common/common-card-play-six.webp',
   },
   {
@@ -27,6 +35,13 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       '1 player may make 1 extra roll attempt with up to 5 dice during their defensive roll phase.',
+    ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player' },
+        effects: [{ t: 'extraRollAttempt', phase: 'defensive', target: 'chosen' }],
+      },
     ],
     art: '/cards/common/common-card-just-this.webp',
   },
@@ -39,6 +54,14 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Select 1 opponent\'s die and force them to reroll it.',
     ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die', scope: 'opponents' },
+        effects: [{ t: 'rerollDie' }],
+      },
+    ],
     art: '/cards/common/common-card-give-hand.webp',
   },
   {
@@ -49,6 +72,13 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       '1 player may make 1 extra roll attempt with up to 5 dice during their offensive roll phase.',
+    ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player' },
+        effects: [{ t: 'extraRollAttempt', phase: 'offensive', target: 'chosen' }],
+      },
     ],
     art: '/cards/common/common-card-i-can-again.webp',
   },
@@ -61,6 +91,20 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Set 1 of your dice to match another of your dice (same phase and purpose).',
     ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die', scope: 'own' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'dieValue', mode: 'shown' },
+            effects: [{ t: 'setDie', fromChoice: true }],
+          },
+        ],
+      },
+    ],
     art: '/cards/common/common-card-me-too.webp',
   },
   {
@@ -71,6 +115,20 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       'Change any 1 die to any value.',
+    ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'dieValue' },
+            effects: [{ t: 'setDie', fromChoice: true }],
+          },
+        ],
+      },
     ],
     art: '/cards/common/common-card-surprise.webp',
   },
@@ -83,6 +141,19 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'You or 1 teammate may reroll up to 2 dice (same die twice or 2 different dice once each).',
     ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die', scope: 'own', optional: true },
+        effects: [{ t: 'rerollDie' }],
+      },
+      {
+        t: 'choose',
+        request: { pick: 'die', scope: 'own', optional: true },
+        effects: [{ t: 'rerollDie' }],
+      },
+    ],
     art: '/cards/common/common-card-worthy-of-me.webp',
   },
   {
@@ -93,6 +164,31 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       'Change any 2 dice to any values.',
+    ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'dieValue' },
+            effects: [{ t: 'setDie', fromChoice: true }],
+          },
+        ],
+      },
+      {
+        t: 'choose',
+        request: { pick: 'die' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'dieValue' },
+            effects: [{ t: 'setDie', fromChoice: true }],
+          },
+        ],
+      },
     ],
     art: '/cards/common/common-card-unexpected.webp',
   },
@@ -105,6 +201,8 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'One player prevents 6 points of incoming damage.',
     ],
+    window: { needsAttack: true },
+    effects: [{ t: 'preventDamage', amount: 6 }],
     art: '/cards/common/common-card-next-time.webp',
   },
   {
@@ -116,6 +214,7 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Gain 2 CP.',
     ],
+    effects: [{ t: 'gainCP', amount: 2 }],
     art: '/cards/common/common-card-boss-generous.webp',
   },
   {
@@ -126,6 +225,20 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       'Increase or decrease any 1 die by 1 (1 cannot go lower, 6 cannot go higher).',
+    ],
+    window: { needsRoll: true },
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'die' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'dieValue', mode: 'adjacent' },
+            effects: [{ t: 'setDie', fromChoice: true }],
+          },
+        ],
+      },
     ],
     art: '/cards/common/common-card-flick.webp',
   },
@@ -138,6 +251,9 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Remove 1 status effect from 1 player.',
     ],
+    effects: [
+      { t: 'choose', request: { pick: 'status' }, effects: [{ t: 'removeStatus' }] },
+    ],
     art: '/cards/common/common-card-bye-bye.webp',
   },
   {
@@ -149,6 +265,7 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Draw 2 cards.',
     ],
+    effects: [{ t: 'drawCard', amount: 2 }],
     art: '/cards/common/common-card-double.webp',
   },
   {
@@ -160,6 +277,7 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Draw 3 cards.',
     ],
+    effects: [{ t: 'drawCard', amount: 3 }],
     art: '/cards/common/common-card-super-double.webp',
   },
   {
@@ -170,6 +288,9 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       'Remove 1 status effect from 1 player.',
+    ],
+    effects: [
+      { t: 'choose', request: { pick: 'status' }, effects: [{ t: 'removeStatus' }] },
     ],
     art: '/cards/common/common-card-get-away.webp',
   },
@@ -182,6 +303,20 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Roll 1 die: gain CP equal to half the value (rounded up).',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [
+          { on: 1, effects: [{ t: 'gainCP', amount: 1 }] },
+          { on: 2, effects: [{ t: 'gainCP', amount: 1 }] },
+          { on: 3, effects: [{ t: 'gainCP', amount: 2 }] },
+          { on: 4, effects: [{ t: 'gainCP', amount: 2 }] },
+          { on: 5, effects: [{ t: 'gainCP', amount: 3 }] },
+          { on: 6, effects: [{ t: 'gainCP', amount: 3 }] },
+        ],
+      },
+    ],
     art: '/cards/common/common-card-one-throw-fortune.webp',
   },
   {
@@ -193,6 +328,13 @@ export const COMMON_CARDS: Card[] = [
     text: [
       'Remove all status effects from 1 player.',
     ],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'player' },
+        effects: [{ t: 'removeAllStatus', target: 'chosen' }],
+      },
+    ],
     art: '/cards/common/common-card-what-status.webp',
   },
   {
@@ -203,6 +345,20 @@ export const COMMON_CARDS: Card[] = [
     copies: 1,
     text: [
       'Transfer 1 status effect from 1 player to another player.',
+    ],
+    tags: ['Transfer'],
+    effects: [
+      {
+        t: 'choose',
+        request: { pick: 'status' },
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'player' },
+            effects: [{ t: 'transferStatus', from: 'chosen', to: 'chosen', amount: 1 }],
+          },
+        ],
+      },
     ],
     art: '/cards/common/common-card-transfer-status.webp',
   },
