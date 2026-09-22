@@ -62,6 +62,9 @@ export const VI: Dict = {
   'ui.net.namePlaceholder': 'ví dụ: Khải',
   'ui.net.needName': 'Nhập tên trước thì mới tạo hoặc vào phòng được.',
   'ui.net.needCode': 'Mã phòng gồm 4 ký tự.',
+  'ui.net.status.connecting': 'đang kết nối…',
+  'ui.net.status.reconnecting': 'đang kết nối lại…',
+  'ui.net.status.closed': 'mất kết nối',
   'ui.net.offline': 'Không thấy server ở {url}. Chạy lệnh:',
 
   'ui.lang': 'Ngôn ngữ',

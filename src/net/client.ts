@@ -2,7 +2,12 @@ import type { Action } from '../engine/actions';
 import type { GameMode, GameState } from '../engine/state';
 import type { ClientMessage, RoomView, ServerMessage } from '../../server/protocol';
 
-export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'closed';
+export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';
+
+/** Ping often enough that an idle game never looks frozen. */
+const HEARTBEAT_MS = 25_000;
+/** Backoff between reconnect attempts, in milliseconds. */
+const RETRY_MS = [500, 1_000, 2_000, 4_000, 8_000, 15_000];
 
 export interface NetState {
   status: ConnectionStatus;
@@ -78,6 +83,11 @@ export class GameClient {
   private pending: ClientMessage[] = [];
   /** The room this socket is bound to; each room has its own connection. */
   private code: string | null = null;
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
+  private retry: ReturnType<typeof setTimeout> | null = null;
+  private attempt = 0;
+  /** Set while the user asked to leave, so we do not reconnect behind them. */
+  private closing = false;
 
   subscribe(fn: (s: NetState) => void): () => void {
     this.listeners.add(fn);
@@ -95,32 +105,61 @@ export class GameClient {
   }
 
   /** Opens (or reuses) the socket for a room code. */
-  private connect(code: string): void {
+  private connect(code: string, reconnecting = false): void {
     if (this.code === code && this.socket && this.socket.readyState <= WebSocket.OPEN) return;
+    this.closing = false;
+    this.stopTimers();
     this.socket?.close();
     this.code = code;
-    this.set({ status: 'connecting', error: null });
+    this.set({ status: reconnecting ? 'reconnecting' : 'connecting', error: null });
 
     const socket = new WebSocket(serverUrl(code));
     this.socket = socket;
 
     socket.onopen = () => {
-      this.set({ status: 'open' });
+      this.attempt = 0;
+      this.set({ status: 'open', error: null });
+
+      // A socket that has been idle can be dropped by anything between here
+      // and the server, and a turn spent thinking is a long idle. The Durable
+      // Object answers these without waking up.
+      this.heartbeat = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) socket.send('ping');
+      }, HEARTBEAT_MS);
+
+      // On a reconnect, walk back into the seat we already hold.
+      const session = loadSession();
+      if (reconnecting && session?.code === code) {
+        socket.send(JSON.stringify({ t: 'resume', code, playerId: session.playerId }));
+      }
+
       const queued = this.pending;
       this.pending = [];
       for (const message of queued) socket.send(JSON.stringify(message));
     };
 
     socket.onclose = () => {
-      this.set({ status: 'closed' });
+      this.stopTimers();
+      if (this.closing || !this.code) {
+        this.set({ status: 'closed' });
+        return;
+      }
+      this.scheduleReconnect();
     };
 
     socket.onerror = () => {
-      this.set({ error: `Cannot reach the server at ${apiBase()}` });
+      // onclose always follows, which is where the retry is scheduled.
+      if (this.attempt === 0) this.set({ error: `Cannot reach the server at ${apiBase()}` });
     };
 
     socket.onmessage = (event) => {
-      const message = JSON.parse(String(event.data)) as ServerMessage;
+      if (event.data === 'pong') return;
+      let message: ServerMessage;
+      try {
+        message = JSON.parse(String(event.data)) as ServerMessage;
+      } catch {
+        return;
+      }
       switch (message.t) {
         case 'welcome':
           saveSession({ code: message.room.code, playerId: message.playerId });
@@ -137,6 +176,27 @@ export class GameClient {
           break;
       }
     };
+  }
+
+  private stopTimers(): void {
+    if (this.heartbeat) clearInterval(this.heartbeat);
+    if (this.retry) clearTimeout(this.retry);
+    this.heartbeat = null;
+    this.retry = null;
+  }
+
+  /** Reopens the room socket with backoff, then resumes the held seat. */
+  private scheduleReconnect(): void {
+    const code = this.code;
+    if (!code) return;
+    const delay = RETRY_MS[Math.min(this.attempt, RETRY_MS.length - 1)];
+    this.attempt += 1;
+    this.set({ status: 'reconnecting' });
+    this.retry = setTimeout(() => {
+      this.socket = null;
+      this.code = null;
+      this.connect(code, true);
+    }, delay);
   }
 
   private send(message: ClientMessage): void {
@@ -191,6 +251,8 @@ export class GameClient {
   leave(): void {
     this.send({ t: 'leave' });
     saveSession(null);
+    this.closing = true;
+    this.stopTimers();
     this.socket?.close();
     this.socket = null;
     this.code = null;

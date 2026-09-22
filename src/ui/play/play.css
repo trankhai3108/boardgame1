@@ -413,3 +413,18 @@
 }
 
 .doorway__hint { color: #e8c34a; font-size: 0.85rem; }
+
+/* Connection badge: silent while healthy, loud when not. */
+.conn {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.conn--connecting,
+.conn--reconnecting { color: #e8c34a; }
+.conn--closed { color: #e8756f; }

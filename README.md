@@ -206,6 +206,27 @@ Each room is a single Durable Object, so every socket for a code lands on the
 same instance: actions serialise naturally and the state has nowhere to
 diverge. Rooms are written to the object's storage, so they survive eviction.
 
+Sockets are accepted through the **hibernation API**, so the object is evicted
+between turns while the connections stay open. Nothing may therefore live in
+instance fields: the room is read from storage on each message, and a socket's
+seat travels with the socket as its attachment.
+
+### Staying connected
+
+A turn spent thinking is a long idle, and an idle websocket can be dropped by
+anything between the browser and the server. Two things guard against a game
+that looks frozen:
+
+- The client pings every 25s. The Durable Object answers with
+  `setWebSocketAutoResponse`, which replies without waking the object.
+- If the socket closes anyway, the client reconnects with backoff (0.5s up to
+  15s) and replays `resume` to walk back into the seat it still holds. A badge
+  shows `reconnecting…` so the player knows why nothing is moving.
+
+`src/net/__tests__` drives this against a fake socket: reconnect, backoff,
+resume-on-reconnect, no reconnect after a deliberate leave, and no stray pings
+once a socket is gone.
+
 `wrangler dev` runs the same Worker and real Durable Objects locally, so there
 is only one server implementation to keep correct. In dev Vite proxies `/api`
 and `/ws` through to it, so the client only ever talks to its own origin and
@@ -228,6 +249,10 @@ npm run deploy
 That builds the site and publishes the Worker, its assets and the Durable
 Object together. Wrangler prints the `*.workers.dev` URL — send that to the
 other players. In CI, set `CLOUDFLARE_API_TOKEN` instead of logging in.
+
+**Do not use `wrangler deploy --temporary` for anything you want to share.**
+It publishes to a throwaway preview account, so the URL stops working after a
+while *and* changes on every deploy. It is only useful for a quick look.
 
 Change the deployed name in `wrangler.jsonc` (`"name"`), which decides the
 subdomain.

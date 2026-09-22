@@ -111,6 +111,9 @@ export const EN: Dict = {
   'ui.net.namePlaceholder': 'e.g. Alex',
   'ui.net.needName': 'Enter a name to create or join a room.',
   'ui.net.needCode': 'Room codes are four characters.',
+  'ui.net.status.connecting': 'connecting…',
+  'ui.net.status.reconnecting': 'reconnecting…',
+  'ui.net.status.closed': 'disconnected',
   'ui.net.offline': 'No game server at {url}. Start it with:',
 
   'ui.lang': 'Language',

@@ -15,6 +15,17 @@ function seatsWanted(mode: GameMode): string {
   return String(MODES[mode].teams * MODES[mode].perTeam);
 }
 
+/**
+ * A quiet badge that only speaks up when the connection is not healthy, so a
+ * dropped socket never looks like a frozen game.
+ */
+function ConnectionBadge() {
+  const { t } = useI18n();
+  const { status } = useRoom();
+  if (status === 'open' || status === 'idle') return null;
+  return <span className={`conn conn--${status}`}>{t(`ui.net.status.${status}`)}</span>;
+}
+
 /** Room code entry and creation. */
 function Doorway() {
   const { t } = useI18n();
@@ -149,6 +160,7 @@ function Lobby() {
           <div className="app__subtitle">{t('ui.net.roomCode')}</div>
           <div className="lobby__code">{room.code}</div>
         </div>
+        <ConnectionBadge />
         <div className="lobby__mode">
           {isHost ? (
             <select
@@ -262,6 +274,7 @@ export function OnlinePlay() {
         toolbar={
           <>
             <span className="lobby__code lobby__code--small">{room.code}</span>
+            <ConnectionBadge />
             <button
               type="button"
               className="play__button play__button--ghost"

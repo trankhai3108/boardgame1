@@ -35,23 +35,28 @@ function minSeats(mode: GameMode): number {
  * The object is the single source of truth for its room: every websocket for
  * that code lands here, so actions serialise naturally and there is nowhere
  * else for the state to diverge.
+ *
+ * Sockets are accepted through the hibernation API, so the object can be
+ * evicted between turns while the connections stay open. That means no state
+ * may live in instance fields: the room is read from storage, and each
+ * socket's seat travels with the socket as its attachment.
  */
 export class Room implements DurableObject {
   private state: DurableObjectState;
-  private room: Stored | null = null;
-  /** Which seat each open socket belongs to. */
-  private sockets = new Map<WebSocket, string>();
 
   constructor(state: DurableObjectState) {
     this.state = state;
-    // Restore after an eviction so a room survives being idle.
-    state.blockConcurrencyWhile(async () => {
-      this.room = (await state.storage.get<Stored>('room')) ?? null;
-    });
+    // A ping never needs the object awake, so let the runtime answer it.
+    state.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
 
-  private async persist(): Promise<void> {
-    if (this.room) await this.state.storage.put('room', this.room);
+  private async load(): Promise<Stored | null> {
+    return (await this.state.storage.get<Stored>('room')) ?? null;
+  }
+
+  private async save(room: Stored | null): Promise<void> {
+    if (room) await this.state.storage.put('room', room);
+    else await this.state.storage.deleteAll();
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -59,7 +64,7 @@ export class Room implements DurableObject {
 
     // The Worker probes this when allocating a fresh code.
     if (url.pathname.endsWith('/exists')) {
-      return Response.json({ exists: this.room !== null });
+      return Response.json({ exists: (await this.load()) !== null });
     }
 
     if (request.headers.get('Upgrade') !== 'websocket') {
@@ -71,36 +76,62 @@ export class Room implements DurableObject {
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    server.accept();
-    this.attach(server, code);
+    // The room code is a tag so it survives hibernation with the socket.
+    this.state.acceptWebSocket(server, [code]);
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  /* --- hibernation handlers ------------------------------------------- */
+
+  async webSocketMessage(socket: WebSocket, raw: string | ArrayBuffer): Promise<void> {
+    let message: ClientMessage;
+    try {
+      message = JSON.parse(String(raw)) as ClientMessage;
+    } catch {
+      this.send(socket, { t: 'error', message: 'Malformed message' });
+      return;
+    }
+    try {
+      await this.handle(socket, message);
+    } catch (err) {
+      // A rejected action is normal — someone clicked out of turn. Keep the
+      // socket open and let the client say why.
+      this.send(socket, {
+        t: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  async webSocketClose(socket: WebSocket): Promise<void> {
+    await this.dropSocket(socket);
+  }
+
+  async webSocketError(socket: WebSocket): Promise<void> {
+    await this.dropSocket(socket);
+  }
+
+  /* --- helpers --------------------------------------------------------- */
+
+  /** The seat a socket belongs to, carried on the socket itself. */
+  private seatIdOf(socket: WebSocket): string | null {
+    const attached = socket.deserializeAttachment() as { playerId?: string } | null;
+    return attached?.playerId ?? null;
+  }
+
+  private bind(socket: WebSocket, playerId: string): void {
+    socket.serializeAttachment({ playerId });
   }
 
   private send(socket: WebSocket, message: ServerMessage): void {
     try {
       socket.send(JSON.stringify(message));
     } catch {
-      // The socket closed under us; the close handler will clean it up.
+      // The socket closed under us; webSocketClose will clean it up.
     }
   }
 
-  private broadcast(): void {
-    if (!this.room) return;
-    const view = this.view();
-    for (const [socket, playerId] of this.sockets) {
-      this.send(socket, { t: 'room', room: view });
-      if (!this.room.game) continue;
-      const you = this.room.game.players.findIndex((p) => p.id === playerId);
-      this.send(socket, {
-        t: 'state',
-        state: redactFor(this.room.game, you >= 0 ? you : null),
-        you,
-      });
-    }
-  }
-
-  private view(): RoomView {
-    const room = this.room!;
+  private view(room: Stored): RoomView {
     return {
       code: room.code,
       mode: room.mode,
@@ -110,101 +141,110 @@ export class Room implements DurableObject {
     };
   }
 
-  private attach(socket: WebSocket, code: string): void {
-    socket.addEventListener('message', async (event) => {
-      let message: ClientMessage;
-      try {
-        message = JSON.parse(String(event.data)) as ClientMessage;
-      } catch {
-        this.send(socket, { t: 'error', message: 'Malformed message' });
-        return;
-      }
-      try {
-        await this.handle(socket, code, message);
-      } catch (err) {
-        // A rejected action is normal — someone clicked out of turn. Keep the
-        // socket open and let the client say why.
-        this.send(socket, {
-          t: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
-    });
-
-    socket.addEventListener('close', async () => {
-      const playerId = this.sockets.get(socket);
-      this.sockets.delete(socket);
-      if (!playerId || !this.room) return;
-      const seat = this.room.seats.find((s) => s.playerId === playerId);
-      if (seat) seat.connected = false;
-      // Before the game starts a seat is disposable; afterwards it must stay so
-      // the player can come back to a game that is mid-flight.
-      if (!this.room.game) {
-        this.room.seats = this.room.seats.filter((s) => s.playerId !== playerId);
-        if (this.room.seats.length === 0) {
-          this.room = null;
-          await this.state.storage.deleteAll();
-          return;
-        }
-        if (this.room.hostId === playerId) this.room.hostId = this.room.seats[0].playerId;
-      }
-      await this.persist();
-      this.broadcast();
-    });
+  private broadcast(room: Stored): void {
+    const view = this.view(room);
+    for (const socket of this.state.getWebSockets()) {
+      const playerId = this.seatIdOf(socket);
+      if (!playerId) continue;
+      this.send(socket, { t: 'room', room: view });
+      if (!room.game) continue;
+      const you = room.game.players.findIndex((p) => p.id === playerId);
+      this.send(socket, {
+        t: 'state',
+        state: redactFor(room.game, you >= 0 ? you : null),
+        you,
+      });
+    }
   }
 
-  private async handle(socket: WebSocket, code: string, message: ClientMessage): Promise<void> {
+  /** True while another live socket still holds this seat. */
+  private stillConnected(playerId: string, except: WebSocket): boolean {
+    return this.state
+      .getWebSockets()
+      .some((s) => s !== except && this.seatIdOf(s) === playerId);
+  }
+
+  private async dropSocket(socket: WebSocket): Promise<void> {
+    const playerId = this.seatIdOf(socket);
+    const room = await this.load();
+    if (!playerId || !room) return;
+    // A reconnect opens the new socket before the old one closes, so only mark
+    // a seat away when nothing else is holding it.
+    if (this.stillConnected(playerId, socket)) return;
+
+    const seat = room.seats.find((s) => s.playerId === playerId);
+    if (seat) seat.connected = false;
+
+    // Before the game starts a seat is disposable; afterwards it must stay so
+    // the player can come back to a game that is mid-flight.
+    if (!room.game) {
+      room.seats = room.seats.filter((s) => s.playerId !== playerId);
+      if (room.seats.length === 0) {
+        await this.save(null);
+        return;
+      }
+      if (room.hostId === playerId) room.hostId = room.seats[0].playerId;
+    }
+    await this.save(room);
+    this.broadcast(room);
+  }
+
+  /* --- protocol -------------------------------------------------------- */
+
+  private async handle(socket: WebSocket, message: ClientMessage): Promise<void> {
+    let room = await this.load();
+    const code = (this.state.getTags(socket)[0] ?? '').toUpperCase();
+
     switch (message.t) {
       case 'create': {
-        if (this.room) throw new Error('That code is taken');
+        if (room) throw new Error('That code is taken');
         const playerId = crypto.randomUUID();
-        this.room = {
+        room = {
           code,
           mode: message.mode,
           hostId: playerId,
           seats: [{ playerId, name: message.name, heroId: null, ready: false, connected: true }],
           game: null,
         };
-        this.sockets.set(socket, playerId);
-        await this.persist();
-        this.send(socket, { t: 'welcome', playerId, room: this.view() });
+        this.bind(socket, playerId);
+        await this.save(room);
+        this.send(socket, { t: 'welcome', playerId, room: this.view(room) });
         return;
       }
 
       case 'join': {
-        if (!this.room) throw new Error('No room with that code');
-        if (this.room.game) throw new Error('That game has already started');
-        if (this.room.seats.length >= maxSeats(this.room.mode)) throw new Error('That room is full');
+        if (!room) throw new Error('No room with that code');
+        if (room.game) throw new Error('That game has already started');
+        if (room.seats.length >= maxSeats(room.mode)) throw new Error('That room is full');
         const playerId = crypto.randomUUID();
-        this.room.seats.push({
+        room.seats.push({
           playerId,
           name: message.name,
           heroId: null,
           ready: false,
           connected: true,
         });
-        this.sockets.set(socket, playerId);
-        await this.persist();
-        this.send(socket, { t: 'welcome', playerId, room: this.view() });
-        this.broadcast();
+        this.bind(socket, playerId);
+        await this.save(room);
+        this.send(socket, { t: 'welcome', playerId, room: this.view(room) });
+        this.broadcast(room);
         return;
       }
 
       case 'resume': {
-        if (!this.room) throw new Error('No room with that code');
-        const seat = this.room.seats.find((s) => s.playerId === message.playerId);
+        if (!room) throw new Error('No room with that code');
+        const seat = room.seats.find((s) => s.playerId === message.playerId);
         if (!seat) throw new Error('That seat is gone');
         seat.connected = true;
-        this.sockets.set(socket, message.playerId);
-        await this.persist();
-        this.send(socket, { t: 'welcome', playerId: message.playerId, room: this.view() });
-        this.broadcast();
+        this.bind(socket, message.playerId);
+        await this.save(room);
+        this.send(socket, { t: 'welcome', playerId: message.playerId, room: this.view(room) });
+        this.broadcast(room);
         return;
       }
     }
 
-    const room = this.room;
-    const playerId = this.sockets.get(socket);
+    const playerId = this.seatIdOf(socket);
     if (!room || !playerId) throw new Error('Join a room first');
 
     switch (message.t) {
@@ -264,11 +304,10 @@ export class Room implements DurableObject {
       }
 
       case 'leave': {
-        this.sockets.delete(socket);
         room.seats = room.seats.filter((s) => s.playerId !== playerId);
+        socket.serializeAttachment(null);
         if (room.seats.length === 0) {
-          this.room = null;
-          await this.state.storage.deleteAll();
+          await this.save(null);
           return;
         }
         if (room.hostId === playerId) room.hostId = room.seats[0].playerId;
@@ -276,7 +315,7 @@ export class Room implements DurableObject {
       }
     }
 
-    await this.persist();
-    this.broadcast();
+    await this.save(room);
+    this.broadcast(room);
   }
 }
