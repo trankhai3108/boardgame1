@@ -63,6 +63,49 @@ export const NINJA: Hero = {
           effects: [{ t: 'damage', amount: 7 }],
         },
       ],
+      upgrades: {
+        // The source prints 4/6/8, but level I already deals 5 on three
+        // blades; an upgrade is never allowed to be a downgrade, so that
+        // tier keeps its 5 and the rest take the printed numbers.
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { ninjato: 3 } },
+          text: ['Deal [[dmg:5]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 5 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'gainStatus', status: 'ninjutsu' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { ninjato: 4 } },
+          text: ['Deal [[dmg:6]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'gainStatus', status: 'ninjutsu' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { ninjato: 5 } },
+          text: ['Deal [[dmg:8]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'gainStatus', status: 'ninjutsu' }],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'walk-the-line',
@@ -95,6 +138,46 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { shuriken: 3 } },
+            text: ['Roll [[die:1]] and deal that much *undefendable* dmg.'],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 1,
+                outcomes: [],
+                total: [{ t: 'damage', undefendable: true, amount: { perPip: 1 } }],
+              },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { shuriken: 4 } },
+            text: [
+              'Roll [[die:2]] and deal dmg equal to the total roll value.',
+              'If the final roll value is 6 or less, this *Attack* becomes *undefendable*.',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 2,
+                rerolls: 1,
+                outcomes: [],
+                total: [
+                  { t: 'damage', amount: { perPip: 1 } },
+                  {
+                    t: 'when',
+                    cond: { rollAtLeast: 7 },
+                    effects: [],
+                    otherwise: [{ t: 'undefendable' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'death-blossom',
@@ -122,6 +205,36 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { ninjato: 3, shuriken: 2 } },
+            text: [
+              'Roll [[die:5]]:',
+              'Deal [[dmg:1]] × [[ninjato]] & [[dmg:2]] × [[shuriken]].',
+              'On [[mask]], this *Attack* becomes *undefendable*.',
+              'On [[mask]][[mask]], inflict *Delayed Poison* [[delayedpoison]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                rerolls: 2,
+                outcomes: [
+                  { on: 'ninjato', effects: [{ t: 'damage', amount: 1 }] },
+                  { on: 'shuriken', effects: [{ t: 'damage', amount: 2 }] },
+                  { on: 'mask', atLeast: 1, effects: [{ t: 'undefendable' }] },
+                  {
+                    on: 'mask',
+                    atLeast: 2,
+                    effects: [{ t: 'gainStatus', status: 'delayed-poison', target: 'opponent' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'smoke-screen',
@@ -142,6 +255,30 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { shuriken: 3, mask: 2 } },
+            text: ['Deal [[dmg:4]] *undefendable* dmg to 2 opponents.', '*(The same one twice is allowed.)*'],
+            effects: [
+              { t: 'damage', amount: 4, undefendable: true },
+              { t: 'damage', amount: 4, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { ninjato: 1, shuriken: 2, mask: 1 } },
+            text: [
+              'A chosen player gains *Smoke Bomb* [[smokebomb]] & 3 *Ninjutsu* [[ninjutsu]].',
+              'A chosen opponent is inflicted with *Delayed Poison* [[delayedpoison]].',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'smoke-bomb', target: 'chosenPlayer' },
+              { t: 'gainStatus', status: 'ninjutsu', amount: 3, target: 'chosenPlayer' },
+              { t: 'gainStatus', status: 'delayed-poison', target: 'opponent' },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'poison-blade',
@@ -159,6 +296,44 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: [
+              'Roll [[die:1]]: on [[ninjato]] inflict *Delayed Poison* [[delayedpoison]];',
+              'on [[shuriken]] or [[mask]] inflict 2.',
+              'Then deal [[dmg:5]] dmg.',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 1,
+                outcomes: [
+                  {
+                    on: 'ninjato',
+                    effects: [{ t: 'gainStatus', status: 'delayed-poison', target: 'opponent' }],
+                  },
+                  {
+                    on: 'shuriken',
+                    effects: [
+                      { t: 'gainStatus', status: 'delayed-poison', amount: 2, target: 'opponent' },
+                    ],
+                  },
+                  {
+                    on: 'mask',
+                    effects: [
+                      { t: 'gainStatus', status: 'delayed-poison', amount: 2, target: 'opponent' },
+                    ],
+                  },
+                ],
+              },
+              { t: 'damage', amount: 5 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'shadewalk',
@@ -180,6 +355,33 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { mask: 3 } },
+            text: [
+              'Gain 3 *Ninjutsu* [[ninjutsu]].',
+              'Inflict 2 *Delayed Poison* [[delayedpoison]].',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'ninjutsu', amount: 3 },
+              { t: 'gainStatus', status: 'delayed-poison', amount: 2, target: 'opponent' },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { mask: 4 } },
+            text: [
+              'Gain *Smoke Bomb* [[smokebomb]]. Inflict 2 *Delayed Poison* [[delayedpoison]].',
+              'Deal [[dmg:5]] *undefendable* dmg.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'smoke-bomb' },
+              { t: 'gainStatus', status: 'delayed-poison', amount: 2, target: 'opponent' },
+              { t: 'damage', amount: 5, undefendable: true },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'shadow-fang',
@@ -197,6 +399,31 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { ninjato: 2, mask: 2 } },
+            text: ['Gain *Smoke Bomb* [[smokebomb]].', 'Deal [[dmg:2]] *undefendable* dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'smoke-bomb' },
+              { t: 'damage', amount: 2, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: [
+              'Gain *Smoke Bomb* [[smokebomb]] & 2 *Ninjutsu* [[ninjutsu]].',
+              'Then deal [[dmg:8]] dmg.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'smoke-bomb' },
+              { t: 'gainStatus', status: 'ninjutsu', amount: 2 },
+              { t: 'damage', amount: 8 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'shade-shift',
@@ -232,6 +459,35 @@ export const NINJA: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 3 },
+            requirementLabel: 'DEFENSE ROLL 3',
+            text: [
+              'Deal [[dmg:1]] × [[ninjato]] & [[dmg:2]] × [[shuriken]].',
+              'On [[mask]][[mask]], gain *Smoke Bomb* [[smokebomb]].',
+              'You may re-roll up to 2 of these dice.',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 3,
+                rerolls: 2,
+                outcomes: [
+                  { on: 'ninjato', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                  { on: 'shuriken', effects: [{ t: 'damage', amount: 2, target: 'attacker' }] },
+                  {
+                    on: 'mask',
+                    atLeast: 2,
+                    effects: [{ t: 'gainStatus', status: 'smoke-bomb' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'assassinate',

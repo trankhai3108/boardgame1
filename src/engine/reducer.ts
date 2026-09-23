@@ -460,8 +460,20 @@ function activateOffensive(
   if (index === undefined) throw new Error(`Dice do not activate ${ability.name}`);
   const tier = tiersAt(ability, levelOf(ability, levels))[index];
   if (!tier) throw new Error(`Dice do not activate ${ability.name}`);
-  const usedDice = matchRequirement(hero, roll.dice, tier.requirement);
-  if (!usedDice) throw new Error(`Dice do not activate ${ability.name}`);
+  if (!matchRequirement(hero, roll.dice, tier.requirement)) {
+    throw new Error(`Dice do not activate ${ability.name}`);
+  }
+
+  /*
+   * The whole roll goes to the effects, not only the dice the requirement
+   * asked for.
+   *
+   * "Draw 1 card per Card face", "2 Fire Mastery per Fiery Soul" and "if
+   * there are 4 matching numbers" all read the dice on the table. Handing
+   * them the minimum that satisfied the requirement made Carducopia draw
+   * exactly two cards however many Cards were showing.
+   */
+  const usedDice = roll.dice.slice();
 
   // Blind resolves as the Offensive Roll Phase concludes.
   if (statusCount(attacker, 'blind') > 0) {

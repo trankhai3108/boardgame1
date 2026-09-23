@@ -70,6 +70,38 @@ export const SHADOW_THIEF: Hero = {
         'If [[cardsym]] was rolled, gain [[cp:1]].',
         'If [[shadow]] was rolled, inflict *Poison* [[poison]].',
       ],
+      upgrades: {
+        // Same damage; the upgrade is the CP and the cards.
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { dagger: 3 } },
+          text: ['Deal [[dmg:4]] dmg.', 'Gain [[cp:1]] & draw [[card:1]] × [[cardsym]].'],
+          effects: [
+            { t: 'damage', amount: 4 },
+            { t: 'gainCP', amount: 1 },
+            { t: 'drawCard', amount: { perSymbol: { card: 1 } } },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { dagger: 4 } },
+          text: ['Deal [[dmg:6]] dmg.', 'Gain [[cp:1]] & draw [[card:1]] × [[cardsym]].'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            { t: 'gainCP', amount: 1 },
+            { t: 'drawCard', amount: { perSymbol: { card: 1 } } },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { dagger: 5 } },
+          text: ['Deal [[dmg:8]] dmg.', 'Gain [[cp:1]] & draw [[card:1]] × [[cardsym]].'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            { t: 'gainCP', amount: 1 },
+            { t: 'drawCard', amount: { perSymbol: { card: 1 } } },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'shifty-strike',
@@ -87,6 +119,19 @@ export const SHADOW_THIEF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: ['Gain [[cp:4]].', 'Then deal 1/2 [[cp]] as dmg *(rounded up)*.'],
+            effects: [
+              { t: 'gainCP', amount: 4 },
+              { t: 'damage', amount: { perCp: 1, halve: true } },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'pickpocket',
@@ -113,6 +158,55 @@ export const SHADOW_THIEF: Hero = {
       footer: [
         'If [[shadow]] was rolled, up to [[cp:1]] may instead be stolen from your opponent.',
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { bag: 3 } },
+          text: ['Gain [[cp:3]].', 'On [[shadow]], take [[cp:1]] from an opponent.'],
+          effects: [
+            { t: 'gainCP', amount: 3 },
+            {
+              t: 'when',
+              cond: { rolled: 'shadow' },
+              effects: [
+                { t: 'gainCP', amount: -1, target: 'opponent' },
+                { t: 'gainCP', amount: 1 },
+              ],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { bag: 4 } },
+          text: ['Gain [[cp:4]].', 'On [[shadow]], take [[cp:1]] from an opponent.'],
+          effects: [
+            { t: 'gainCP', amount: 4 },
+            {
+              t: 'when',
+              cond: { rolled: 'shadow' },
+              effects: [
+                { t: 'gainCP', amount: -1, target: 'opponent' },
+                { t: 'gainCP', amount: 1 },
+              ],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { bag: 5 } },
+          text: ['Gain [[cp:5]].', 'On [[shadow]], take [[cp:1]] from an opponent.'],
+          effects: [
+            { t: 'gainCP', amount: 5 },
+            {
+              t: 'when',
+              cond: { rolled: 'shadow' },
+              effects: [
+                { t: 'gainCP', amount: -1, target: 'opponent' },
+                { t: 'gainCP', amount: 1 },
+              ],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'insidious-strike',
@@ -130,6 +224,19 @@ export const SHADOW_THIEF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: ['Gain [[cp:4]].', 'Then deal [[cp]] as dmg.'],
+            effects: [
+              { t: 'gainCP', amount: 4 },
+              { t: 'damage', amount: { perCp: 1 } },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'shadow-dance',
@@ -156,6 +263,29 @@ export const SHADOW_THIEF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { shadow: 3 } },
+            text: [
+              'Roll [[die:1]]: deal 1/2 the value as *pure* dmg.',
+              'Then gain *Shadows* [[shadows]] & *Sneak Attack* [[sneakattack]].',
+              'Draw [[card:1]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 1,
+                outcomes: [],
+                total: [{ t: 'damage', pure: true, amount: { perPip: 1, halve: true } }],
+              },
+              { t: 'gainStatus', status: 'shadows' },
+              { t: 'gainStatus', status: 'sneak-attack' },
+              { t: 'drawCard', amount: 1 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'shadow-defense',
@@ -185,6 +315,37 @@ export const SHADOW_THIEF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: [
+              'On [[dagger]], inflict *Poison* [[poison]].',
+              'On [[shadow]], gain *Sneak Attack* [[sneakattack]].',
+              'On [[shadow]][[shadow]], gain *Shadows* [[shadows]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  {
+                    on: 'dagger',
+                    effects: [{ t: 'gainStatus', status: 'poison', target: 'attacker' }],
+                  },
+                  { on: 'shadow', effects: [{ t: 'gainStatus', status: 'sneak-attack' }] },
+                  {
+                    on: 'shadow',
+                    atLeast: 2,
+                    effects: [{ t: 'gainStatus', status: 'shadows' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'carducopia',
@@ -200,6 +361,26 @@ export const SHADOW_THIEF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { card: 2 } },
+            text: [
+              'Draw [[card:1]] × [[cardsym]].',
+              'On [[shadow]], discard [[card:1]]. On [[bag]], gain [[cp:1]].',
+            ],
+            effects: [
+              { t: 'drawCard', amount: { perSymbol: { card: 1 } } },
+              {
+                t: 'when',
+                cond: { rolled: 'shadow' },
+                effects: [{ t: 'discardCard', amount: 1 }],
+              },
+              { t: 'when', cond: { rolled: 'bag' }, effects: [{ t: 'gainCP', amount: 1 }] },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'counter-strike',
@@ -231,6 +412,38 @@ export const SHADOW_THIEF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: [
+              'Deal [[dmg:2]] × [[dagger]].',
+              'With both [[dagger]] and [[shadow]], inflict *Poison* [[poison]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  { on: 'dagger', effects: [{ t: 'damage', amount: 2, target: 'attacker' }] },
+                  {
+                    on: 'dagger',
+                    atLeast: 1,
+                    effects: [
+                      {
+                        t: 'when',
+                        cond: { rolled: 'shadow' },
+                        effects: [{ t: 'gainStatus', status: 'poison', target: 'attacker' }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'shadow-shank',

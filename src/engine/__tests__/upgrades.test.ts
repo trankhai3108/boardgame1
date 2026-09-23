@@ -95,3 +95,31 @@ describe('every upgrade card', () => {
     expect(broken, broken.join('\n')).toHaveLength(0);
   });
 });
+
+describe('what the dice tell an ability', () => {
+  /*
+   * "Draw 1 card per Card face" reads the dice on the table, not the two the
+   * requirement asked for — Carducopia used to draw exactly two however many
+   * Cards were showing.
+   */
+  function carducopiaWith(faces: number[]): number {
+    const state = createGame(
+      [
+        { id: 'p1', name: 'One', hero: HEROES['shadow-thief'] },
+        { id: 'p2', name: 'Two', hero: HEROES.barbarian },
+      ],
+      { seed: 5 },
+    );
+    let next = act(state, { type: 'nextPhase' });
+    next.roll!.dice = faces.map((value, i) => ({ id: `d${i}`, value, kept: true }));
+    const before = next.players[0].hand.length;
+    next = act(next, { type: 'activateAbility', abilityId: 'carducopia' });
+    return next.players[0].hand.length - before;
+  }
+
+  it('draws one card per Card face rolled', () => {
+    // Shadow Thief: 5 is the Card face.
+    expect(carducopiaWith([5, 5, 1, 2, 3])).toBe(2);
+    expect(carducopiaWith([5, 5, 5, 5, 1])).toBe(4);
+  });
+});
