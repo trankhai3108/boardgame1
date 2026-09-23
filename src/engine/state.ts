@@ -109,6 +109,8 @@ export interface PlayerState {
   barbedVineDamageThisTurn: number;
   /** Set when the player has taken at least one full turn. */
   hasTakenTurn: boolean;
+  /** True when the engine plays this seat. */
+  isBot: boolean;
 }
 
 export interface RollState {
@@ -183,6 +185,8 @@ export interface PlayerSetup {
   id: string;
   name: string;
   hero: Hero;
+  /** Seats the engine plays itself. */
+  isBot?: boolean;
 }
 
 export interface GameOptions {
@@ -216,7 +220,7 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
   const teamCount = mode === 'koth' ? setups.length : MODES[mode].teams;
   const teamHealth = mode === 'koth' ? KOTH_HEALTH[setups.length] : RULES.startingHealth;
 
-  const players = setups.map<PlayerState>(({ id, name, hero }, seat) => {
+  const players = setups.map<PlayerState>(({ id, name, hero, isBot }, seat) => {
     // A card with N copies appears N times in the deck.
     const cardIds = hero.cards.flatMap((card) =>
       Array.from({ length: card.copies }, (_, i) => `${card.id}#${i}`),
@@ -239,6 +243,7 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
       gainedThisTurn: [],
       barbedVineDamageThisTurn: 0,
       hasTakenTurn: false,
+      isBot: isBot ?? false,
     };
   });
 

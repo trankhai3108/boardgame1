@@ -428,3 +428,59 @@
 .conn--connecting,
 .conn--reconnecting { color: #e8c34a; }
 .conn--closed { color: #e8756f; }
+
+.seat-picker__who {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 5.5rem;
+}
+
+.seat-picker__who--bot { border-color: #7b5aa8; color: #c7a8ee; }
+
+.player-panel__bot {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #2f2445;
+  color: #c7a8ee;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lobby__drop {
+  margin-left: auto;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lobby__drop:hover { border-color: #e8756f; color: #e8756f; }
+
+.lobby__add-bot {
+  min-width: 15rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.7rem;
+  border: 1px dashed #7b5aa8;
+  background: none;
+  color: #c7a8ee;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lobby__add-bot:hover { background: #1c1630; }

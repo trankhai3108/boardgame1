@@ -1,6 +1,7 @@
-import { HEROES } from '../src/data/heroes';
+import { HEROES, HERO_LIST } from '../src/data/heroes';
 import type { Action } from '../src/engine/actions';
 import { canAct, redactFor } from '../src/engine/authority';
+import { runBots } from '../src/engine/bot';
 import { reduce, type HeroLookup } from '../src/engine/reducer';
 import {
   MODES,
@@ -173,7 +174,7 @@ export class Room implements DurableObject {
     if (this.stillConnected(playerId, socket)) return;
 
     const seat = room.seats.find((s) => s.playerId === playerId);
-    if (seat) seat.connected = false;
+    if (seat && !seat.isBot) seat.connected = false;
 
     // Before the game starts a seat is disposable; afterwards it must stay so
     // the player can come back to a game that is mid-flight.
@@ -262,6 +263,31 @@ export class Room implements DurableObject {
         break;
       }
 
+      case 'addBot': {
+        if (room.hostId !== playerId) throw new Error('Only the host can add bots');
+        if (room.game) throw new Error('The game has started');
+        if (room.seats.length >= maxSeats(room.mode)) throw new Error('That room is full');
+        const taken = new Set(room.seats.map((s) => s.heroId));
+        const hero = HERO_LIST.find((h) => !taken.has(h.id)) ?? HERO_LIST[0];
+        const botNumber = room.seats.filter((s) => s.isBot).length + 1;
+        room.seats.push({
+          playerId: crypto.randomUUID(),
+          name: `Bot ${botNumber}`,
+          heroId: hero.id,
+          ready: true,
+          connected: true,
+          isBot: true,
+        });
+        break;
+      }
+
+      case 'removeBot': {
+        if (room.hostId !== playerId) throw new Error('Only the host can remove bots');
+        if (room.game) throw new Error('The game has started');
+        room.seats = room.seats.filter((s) => !(s.playerId === message.playerId && s.isBot));
+        break;
+      }
+
       case 'setMode': {
         if (room.hostId !== playerId) throw new Error('Only the host can change the mode');
         if (room.game) throw new Error('The game has started');
@@ -288,9 +314,15 @@ export class Room implements DurableObject {
         if (missing) throw new Error(`${missing.name} has not picked a hero`);
 
         room.game = createGame(
-          room.seats.map((s) => ({ id: s.playerId, name: s.name, hero: HEROES[s.heroId!] })),
+          room.seats.map((s) => ({
+            id: s.playerId,
+            name: s.name,
+            hero: HEROES[s.heroId!],
+            isBot: s.isBot ?? false,
+          })),
           { mode: room.mode, seed: Math.floor(Math.random() * 2 ** 31) },
         );
+        room.game = runBots(room.game, lookup, (g, a) => reduce(g, a, lookup));
         break;
       }
 
@@ -300,6 +332,8 @@ export class Room implements DurableObject {
         if (index < 0) throw new Error('You are not in this game');
         if (!canAct(room.game, index, message.action as Action)) throw new Error('Not your move');
         room.game = reduce(room.game, message.action as Action, lookup);
+        // Let every bot seat take its turn before handing control back.
+        room.game = runBots(room.game, lookup, (g, a) => reduce(g, a, lookup));
         break;
       }
 

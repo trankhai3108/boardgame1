@@ -359,6 +359,22 @@ dark-boarded hero (Barbarian) and a pale-boarded one (Paladin) share the same
 components. Only `primary`, `accent` and `board` are required; the `ability*`
 and `ultimate*` fields override the pale default.
 
+## Bots
+
+Any seat can be played by the engine. On the shared screen each seat has a
+Human / Bot toggle; online the host adds bots to the lobby to fill the table.
+Bot turns are applied server-side, so everyone sees the same result.
+
+The bot is not trying to play well — it is there to exercise every path: it
+keeps dice toward the ability it is closest to completing, commits when it runs
+out of rerolls or holds something strong, always defends, spends Crit on an
+attack that qualifies and Protect against a big one, takes upgrades it can
+afford, and sells down to the hand limit.
+
+`npm run audit` plays bot-only games across every table size and reports
+whether any of them stall. The last run: **60 games, 0 stalls, 6.4 rounds on
+average.**
+
 ## What is not built yet
 
 - **Level II and III ability rules.** Upgrade cards are in the decks and the
@@ -371,10 +387,12 @@ and `ultimate*` fields override the pale default.
 - **Choices the engine makes for you.** "A chosen player" resolves to yourself,
   and "remove a status effect of your choice" is only logged. These need a
   prompt in the UI.
-- **Effects recorded as `{ t: 'manual', note: '...' }`** — mostly abilities that
-  scale off tokens held (Hot Streak, Nature's Grasp) or offer a choice
-  (Meditate). Grep for `'manual'` to list them; they are logged during play so
-  nothing is silently skipped.
+- **Effects recorded as `{ t: 'manual', note: '...' }`** — 22 distinct rules the
+  engine writes to the log instead of applying. `npm run audit` counts how
+  often each one actually comes up; the ones that matter most are Ninja's
+  "on two Masks", Shadow Thief's "on two Shadows", and the whole of the
+  Treant's Spirit economy. They are always logged, so nothing is silently
+  skipped, but the players have to apply them by hand.
 - **Room cleanup.** A room's Durable Object storage is deleted when the last
   player leaves a lobby, but a game abandoned mid-flight keeps its storage
   until the object is manually cleared.

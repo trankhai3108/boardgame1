@@ -10,6 +10,20 @@ kept for reproducibility, not run by the build.
 | `extract_art.py` | Slices the illustration window out of each hero's card atlas into `public/cards/`. Action cards only — see the Artwork section of the main README. Writes `art-manifest.json`, which `import_cards.py` reads. |
 | `build_vi.py` | Merges the hand-written Vietnamese batches, generates the formulaic upgrade-card strings from the translated ability names, and emits `src/i18n/vi.ts`. Fails if any key is left untranslated. |
 
+## Completeness audit
+
+`audit.mjs` runs bot-only games across every table size and reports two things:
+whether any game stalls, and which rules the engine still hands to the players
+(the `{ t: 'manual' }` effects, counted by how often they actually come up).
+
+```bash
+npx vite-node tools/audit.mjs
+```
+
+It reads the project directly, so it needs no `ref/` directory.
+
+## Card import
+
 They expect a `ref/` directory holding files fetched from
 [zhuanggenhua/BoardGame](https://github.com/zhuanggenhua/BoardGame) (MIT):
 `ref/loc-en.json`, `ref/ids.ts`, `ref/commonCards.ts`,

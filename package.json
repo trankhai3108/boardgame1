@@ -13,7 +13,8 @@
     "server": "wrangler dev --port 8787",
     "dev:all": "concurrently -n worker,web -c cyan,green \"npm:server\" \"npm:dev\"",
     "check:worker": "tsc --noEmit -p tsconfig.worker.json",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "audit": "vite-node tools/audit.mjs"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",

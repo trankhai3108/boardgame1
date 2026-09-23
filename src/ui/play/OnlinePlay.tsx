@@ -208,15 +208,34 @@ function Lobby() {
                   {seat.playerId === room.hostId ? (
                     <span className="lobby__host">{t('ui.net.hostTag')}</span>
                   ) : null}
+                  {seat.isBot ? (
+                    <span className="player-panel__bot">{t('ui.play.bot')}</span>
+                  ) : null}
                 </div>
                 <div className="player-panel__hero">
                   {hero ? t(K.hero(hero.id, 'name'), hero.name) : t('ui.net.picking')}
                   {seat.connected ? '' : ` · ${t('ui.net.away')}`}
                 </div>
               </div>
+              {isHost && seat.isBot ? (
+                <button
+                  type="button"
+                  className="lobby__drop"
+                  title={t('ui.net.removeBot')}
+                  onClick={() => client.removeBot(seat.playerId)}
+                >
+                  ×
+                </button>
+              ) : null}
             </div>
           );
         })}
+
+        {isHost && room.seats.length < Number(wanted.split('-').pop()) ? (
+          <button type="button" className="lobby__add-bot" onClick={() => client.addBot()}>
+            + {t('ui.net.addBot')}
+          </button>
+        ) : null}
       </div>
 
       <h2 className="section-title">{t('ui.net.pickHero')}</h2>

@@ -8,6 +8,8 @@ export interface Seat {
   heroId: string | null;
   ready: boolean;
   connected: boolean;
+  /** A seat the server plays, so a game can start without a full table. */
+  isBot?: boolean;
 }
 
 export interface RoomView {
@@ -31,6 +33,9 @@ export type ClientMessage =
   | { t: 'pickHero'; heroId: string }
   | { t: 'ready'; ready: boolean }
   | { t: 'setMode'; mode: GameMode }
+  /** Host only: fill a seat with a bot, or send one home. */
+  | { t: 'addBot' }
+  | { t: 'removeBot'; playerId: string }
   | { t: 'start' }
   | { t: 'action'; action: Action }
   | { t: 'leave' };
