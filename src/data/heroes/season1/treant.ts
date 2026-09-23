@@ -85,7 +85,7 @@ export const TREANT: Hero = {
           ],
           effects: [
             { t: 'drawCard', amount: 1 },
-            { t: 'manual', note: 'Grow 3 Spirits.' },
+            { t: 'growSpirit', amount: 3 },
             { t: 'gainStatus', status: 'wellspring', target: 'chosenPlayer' },
             { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
           ],
@@ -116,8 +116,15 @@ export const TREANT: Hero = {
           ],
           effects: [
             { t: 'damage', amount: 2 },
-            { t: 'manual', note: 'Remove up to 2 Spirits; add 4 dmg per Spirit removed.' },
-            { t: 'manual', note: 'You may discard Wellspring to make this attack undefendable.' },
+            { t: 'harvestSpirits', max: 2, cp: 0, damage: 4 },
+            {
+              t: 'choose',
+              request: { pick: 'status', scope: 'own', only: ['wellspring'], optional: true },
+              effects: [
+                { t: 'removeStatus', status: 'wellspring' },
+                { t: 'undefendable' },
+              ],
+            },
           ],
         },
       ],
@@ -152,10 +159,11 @@ export const TREANT: Hero = {
             'Then deal [[dmg:5]] *undefendable* dmg + [[dmg:1]] dmg per *Spirit*.',
           ],
           effects: [
-            { t: 'manual', note: 'Grow 2 Spirits.' },
+            { t: 'growSpirit', amount: 2 },
             {
-              t: 'manual',
-              note: 'Deal 5 undefendable dmg + 1 per Spirit held when the ability activated.',
+              t: 'damage',
+              undefendable: true,
+              amount: { base: 5, perStatus: { seedling: 1, sapling: 1, dryad: 1 } },
             },
           ],
         },
@@ -184,7 +192,7 @@ export const TREANT: Hero = {
               outcomes: [
                 { on: 'branch', effects: [{ t: 'damage', amount: 1 }] },
                 { on: 'leaf', effects: [{ t: 'gainStatus', status: 'wellspring' }] },
-                { on: 'spirit', effects: [{ t: 'manual', note: 'Grow 1 Spirit.' }] },
+                { on: 'spirit', effects: [{ t: 'growSpirit', amount: 1 }] },
               ],
             },
           ],
@@ -211,7 +219,7 @@ export const TREANT: Hero = {
               outcomes: [
                 { on: 'branch', effects: [{ t: 'prevent', amount: 1 }] },
                 { on: 'spirit', effects: [{ t: 'prevent', amount: 1 }] },
-                { on: 'leaf', effects: [{ t: 'manual', note: 'Grow a Spirit.' }] },
+                { on: 'leaf', effects: [{ t: 'growSpirit', amount: 1 }] },
               ],
             },
           ],
@@ -233,7 +241,8 @@ export const TREANT: Hero = {
           ],
           effects: [
             { t: 'gainStatus', status: 'wellspring' },
-            { t: 'manual', note: 'A chosen teammate also gains Wellspring. Grow 5 Spirits.' },
+            { t: 'gainStatus', status: 'wellspring', target: 'chosenPlayer' },
+            { t: 'growSpirit', amount: 5 },
             { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
             { t: 'damage', amount: 10 },
           ],

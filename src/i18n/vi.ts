@@ -92,6 +92,7 @@ export const VI: Dict = {
   'ui.play.pickStatus': 'Chọn một token trạng thái.',
   'ui.play.pickDie': 'Chọn một viên xúc xắc.',
   'ui.play.pickValue': 'Chọn một giá trị.',
+  'ui.play.pickOption': 'Chọn một.',
   'ui.action.declineChoice': 'Bỏ qua',
 
   'ui.lang': 'Ngôn ngữ',
@@ -110,6 +111,8 @@ export const VI: Dict = {
   'ui.play.passives': 'Bị động',
   'passive.tithe-reroll': 'Tung lại 1 xúc xắc',
   'passive.tithe-draw': 'Rút 1 lá bài',
+  'choice.monk-evasive': 'Nhận Evasive',
+  'choice.monk-cleanse': 'Nhận Cleanse',
   'ui.play.cards': 'lá bài',
   'ui.play.cp': 'CP',
   'ui.play.dmg': '{n} sát thương',

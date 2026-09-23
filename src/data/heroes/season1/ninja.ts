@@ -78,10 +78,19 @@ export const NINJA: Hero = {
           ],
           effects: [
             {
-              t: 'manual',
-              note:
-                'Roll 2 dice; deal damage equal to the total. If the total is 6 or ' +
-                'less, the attack is undefendable.',
+              t: 'subRoll',
+              dice: 2,
+              outcomes: [],
+              total: [
+                { t: 'damage', amount: { perPip: 1 } },
+                // "6 or less" is the same line read the other way round.
+                {
+                  t: 'when',
+                  cond: { rollAtLeast: 7 },
+                  effects: [],
+                  otherwise: [{ t: 'undefendable' }],
+                },
+              ],
             },
           ],
         },
@@ -211,9 +220,15 @@ export const NINJA: Hero = {
               outcomes: [
                 { on: 'ninjato', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
                 { on: 'shuriken', effects: [{ t: 'damage', amount: 2, target: 'attacker' }] },
+                {
+                  on: 'mask',
+                  atLeast: 2,
+                  effects: [{ t: 'gainStatus', status: 'smoke-bomb' }],
+                },
               ],
+              rerolls: 1,
             },
-            { t: 'manual', note: 'On two Masks, gain Smoke Bomb. You may re-roll one die.' },
+            
           ],
         },
       ],

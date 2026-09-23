@@ -14,7 +14,8 @@
     "dev:all": "concurrently -n worker,web -c cyan,green \"npm:server\" \"npm:dev\"",
     "check:worker": "tsc --noEmit -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy",
-    "audit": "vite-node tools/audit.mjs"
+    "audit": "vite-node tools/audit.mjs",
+    "audit:abilities": "vite-node tools/ability-audit.mjs"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",
@@ -33,6 +34,7 @@
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
+    "vite-node": "^6.0.0",
     "vitest": "^5.0.1"
   }
 }

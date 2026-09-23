@@ -81,7 +81,24 @@ export const MONK: Hero = {
           ],
           effects: [
             { t: 'gainStatus', status: 'chi', amount: 5 },
-            { t: 'manual', note: 'Choose: gain Evasive or gain Cleanse.' },
+            {
+              t: 'choose',
+              request: {
+                pick: 'oneOf',
+                options: [
+                  { id: 'monk-evasive', label: 'Gain Evasive' },
+                  { id: 'monk-cleanse', label: 'Gain Cleanse' },
+                ],
+              },
+              effects: [
+                {
+                  t: 'when',
+                  cond: { chose: 'monk-evasive' },
+                  effects: [{ t: 'gainStatus', status: 'evasive' }],
+                  otherwise: [{ t: 'gainStatus', status: 'cleanse' }],
+                },
+              ],
+            },
           ],
         },
       ],
@@ -112,7 +129,24 @@ export const MONK: Hero = {
                 { on: 'fist', effects: [{ t: 'damage', amount: 2 }] },
                 { on: 'palm', effects: [{ t: 'damage', amount: 3 }] },
                 { on: 'zen', effects: [{ t: 'gainStatus', status: 'chi', amount: 2 }] },
-                { on: 'lotus', effects: [{ t: 'manual', note: 'Gain Evasive or Cleanse.' }] },
+                { on: 'lotus', effects: [{
+              t: 'choose',
+              request: {
+                pick: 'oneOf',
+                options: [
+                  { id: 'monk-evasive', label: 'Gain Evasive' },
+                  { id: 'monk-cleanse', label: 'Gain Cleanse' },
+                ],
+              },
+              effects: [
+                {
+                  t: 'when',
+                  cond: { chose: 'monk-evasive' },
+                  effects: [{ t: 'gainStatus', status: 'evasive' }],
+                  otherwise: [{ t: 'gainStatus', status: 'cleanse' }],
+                },
+              ],
+            }] },
               ],
             },
           ],
@@ -134,8 +168,17 @@ export const MONK: Hero = {
           ],
           effects: [
             {
-              t: 'manual',
-              note: 'Roll 3 dice; deal damage equal to the total. On 13+, inflict Knockdown.',
+              t: 'subRoll',
+              dice: 3,
+              outcomes: [],
+              total: [
+                { t: 'damage', amount: { perPip: 1 } },
+                {
+                  t: 'when',
+                  cond: { rollAtLeast: 13 },
+                  effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+                },
+              ],
             },
           ],
         },
@@ -172,7 +215,7 @@ export const MONK: Hero = {
           ],
           effects: [
             { t: 'damage', amount: 5, undefendable: true },
-            { t: 'manual', note: 'Increase Chi stack limit by 1.' },
+            { t: 'stackLimitBonus', status: 'chi', amount: 1 },
             { t: 'gainStatus', status: 'chi', amount: 5 },
           ],
         },
@@ -237,7 +280,7 @@ export const MONK: Hero = {
             { t: 'gainStatus', status: 'cleanse' },
             { t: 'gainStatus', status: 'knockdown', target: 'opponent' },
             { t: 'damage', amount: 10 },
-            { t: 'manual', note: 'Increase Chi stack limit by 1.' },
+            { t: 'stackLimitBonus', status: 'chi', amount: 1 },
             { t: 'gainStatus', status: 'chi', amount: 6 },
           ],
         },

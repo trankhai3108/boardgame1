@@ -131,7 +131,7 @@ export function PendingPanel({
                     disabled={!yours}
                     onClick={() => onAction(option)}
                   >
-                    <ChoiceLabel game={game} answer={option.answer} />
+                    <ChoiceLabel game={game} step={step} answer={option.answer} />
                   </button>
                 );
               })}
@@ -153,14 +153,33 @@ function promptFor(step: PendingStep, t: (key: string, fallback?: string) => str
       return t('ui.play.pickDie');
     case 'dieValue':
       return t('ui.play.pickValue');
+    case 'oneOf':
+      return t('ui.play.pickOption');
   }
 }
 
 /** One answer, rendered as what it actually is: a seat, a token, or a die. */
-function ChoiceLabel({ game, answer }: { game: GameState; answer: ChoiceAnswer }) {
+function ChoiceLabel({
+  game,
+  step,
+  answer,
+}: {
+  game: GameState;
+  step: PendingStep;
+  answer: ChoiceAnswer;
+}) {
   const { t } = useI18n();
 
   if (answer.skipped) return <>{t('ui.action.declineChoice')}</>;
+
+  if (answer.optionId) {
+    const spec = step.request.kind === 'choice' ? step.request.spec : null;
+    const label =
+      spec?.pick === 'oneOf'
+        ? (spec.options.find((o) => o.id === answer.optionId)?.label ?? answer.optionId)
+        : answer.optionId;
+    return <>{t(`choice.${answer.optionId}`, label)}</>;
+  }
 
   if (answer.player !== undefined) {
     const player = game.players[answer.player];

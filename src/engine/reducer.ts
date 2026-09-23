@@ -355,10 +355,17 @@ function resumePending(state: GameState, lookup: HeroLookup, answer: ChoiceAnswe
       return;
     }
 
-    const rolled = subRollEffects(hero, step.dice, step.request.outcomes, step.request.otherwise);
-    effects = [...rolled, ...step.rest];
-    // "N x symbol" amounts inside a sub-roll read from the dice just thrown.
+    // "N x symbol" amounts and `rollAtLeast` read from the dice just thrown,
+    // so the context is switched before the faces are expanded.
     ctx.usedDice = step.dice;
+    const rolled = subRollEffects(
+      hero,
+      step.dice,
+      step.request.outcomes,
+      step.request.otherwise,
+      step.request.total,
+    );
+    effects = [...rolled, ...step.rest];
   }
 
   startRun(state, lookup, effects, ctx, step.sink, step.source, step.outcome);
@@ -559,11 +566,15 @@ function finishAbility(
   const hero = heroOf(lookup, attacker);
   const ability = findAbility(hero, abilityId);
 
-  const type: DamageType = ability.ultimate
-    ? 'ultimate'
-    : outcome.undefendable
-      ? 'undefendable'
-      : 'normal';
+  // Pure dmg outranks everything: nothing may defend, reduce or avoid it.
+  const type: DamageType =
+    outcome.damageType !== 'normal'
+      ? outcome.damageType
+      : ability.ultimate
+        ? 'ultimate'
+        : outcome.undefendable
+          ? 'undefendable'
+          : 'normal';
 
   if (outcome.damage <= 0 || state.phase === 'gameOver') {
     if (state.phase !== 'gameOver') endOffensivePhase(state);
@@ -736,7 +747,7 @@ function pushTokenRoll(
   state.pending.push({
     who: index,
     source: statusId,
-    request: { kind: 'roll', dice: 1, outcomes: [], otherwise: [], rerolls: 0 },
+    request: { kind: 'roll', dice: 1, outcomes: [], otherwise: [], rerolls: 0, total: [] },
     dice: [],
     rolled: false,
     rerolls: 0,
@@ -1148,6 +1159,7 @@ export function choiceOptions(state: GameState, lookup: HeroLookup): ChoiceAnswe
         const hero = lookup(player.heroId);
         for (const [statusId, count] of Object.entries(player.statuses)) {
           if (count <= 0) continue;
+          if (spec.only && !spec.only.includes(statusId)) continue;
           if (spec.polarity) {
             const printed = hero.statusEffects.find((s) => s.id === statusId);
             if (printed && printed.polarity !== spec.polarity) continue;
@@ -1175,7 +1187,6 @@ export function choiceOptions(state: GameState, lookup: HeroLookup): ChoiceAnswe
           scope === 'any' || (scope === 'own' && mine) || (scope === 'opponents' && !mine);
         if (allowed) for (const die of below.dice) out.push({ dieId: die.id });
       }
-      if (spec.optional) out.push({ skipped: true });
       break;
     }
 
@@ -1200,7 +1211,15 @@ export function choiceOptions(state: GameState, lookup: HeroLookup): ChoiceAnswe
       }
       break;
     }
+
+    case 'oneOf': {
+      for (const option of spec.options) out.push({ optionId: option.id });
+      break;
+    }
   }
+
+  // An optional question always offers the way out, whatever it asks for.
+  if ('optional' in spec && spec.optional) out.push({ skipped: true });
 
   return out;
 }

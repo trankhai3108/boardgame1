@@ -33,6 +33,8 @@ export interface ChoiceAnswer {
   dieId?: string;
   /** Pip value picked, for `pick: 'dieValue'`. */
   value?: number;
+  /** Branch taken, for `pick: 'oneOf'`. */
+  optionId?: string;
   /** Set when an optional choice was declined. */
   skipped?: boolean;
 }
@@ -102,6 +104,8 @@ export type EffectRequest =
       outcomes: SubRollOutcome[];
       otherwise: Effect[];
       rerolls: number;
+      /** Resolved once for the roll as a whole, with every die in context. */
+      total: Effect[];
     };
 
 export interface Suspension {
@@ -128,6 +132,11 @@ export interface EffectRun {
 /* Amounts                                                              */
 /* ------------------------------------------------------------------ */
 
+/** Sum of the pips showing on the dice in context. */
+export function pipTotal(dice: readonly Die[]): number {
+  return dice.reduce((sum, die) => sum + die.value, 0);
+}
+
 /** Resolves `base + sum(perSymbol[s] * count of s among the dice)`. */
 export function resolveAmount(
   amount: number | DynamicAmount,
@@ -148,6 +157,8 @@ export function resolveAmount(
       total += per * statusCount(holder, statusId);
     }
   }
+  if (amount.perCp && holder) total += amount.perCp * holder.cp;
+  if (amount.perPip) total += amount.perPip * pipTotal(dice);
   if (amount.halve) total = Math.ceil(total / 2);
   return total;
 }
@@ -251,6 +262,7 @@ export function runEffects(
               outcomes: effect.outcomes,
               otherwise: effect.otherwise ?? [],
               rerolls: effect.rerolls ?? 0,
+              total: effect.total ?? [],
             },
             rest: remaining,
             bodyLength: 0,
@@ -268,6 +280,10 @@ export function runEffects(
       case 'damage': {
         const amount = resolveAmount(effect.amount, ctx.hero, ctx.usedDice, self);
         if (effect.undefendable) out.undefendable = true;
+        if (effect.pure) {
+          out.undefendable = true;
+          out.damageType = 'pure';
+        }
         if (effect.target === 'self') {
           // Reckless-style recoil: applied directly, not through the pipeline.
           changeHealth(ctx, 'self', -amount);
@@ -308,7 +324,8 @@ export function runEffects(
 
       case 'drawCard': {
         const who = playerFor(ctx, effect.target);
-        const drawn = drawCards(ctx.state, who, effect.amount);
+        const count = resolveAmount(effect.amount, ctx.hero, ctx.usedDice, self);
+        const drawn = drawCards(ctx.state, who, count);
         out.log.push(`${who.name} draws ${drawn.length}`);
         break;
       }
@@ -486,8 +503,30 @@ export function runEffects(
           }
         }
         if (removed > 0) {
-          gainCp(self, removed);
-          out.log.push(`${self.name} harvests ${removed} spirits for ${removed} CP`);
+          const cp = (effect.cp ?? (effect.damage ? 0 : 1)) * removed;
+          if (cp > 0) {
+            gainCp(self, cp);
+            out.log.push(`${self.name} harvests ${removed} spirits for ${cp} CP`);
+          }
+          if (effect.damage) {
+            const bonus = effect.damage * removed;
+            out.damage += bonus;
+            out.log.push(`${self.name} spends ${removed} spirits for ${bonus} dmg`);
+          }
+        }
+        break;
+      }
+
+      case 'spendTokens': {
+        const spent = Math.min(effect.max, statusCount(self, effect.status));
+        if (spent > 0) {
+          removeStatus(self, effect.status, spent);
+          if (effect.damage) {
+            out.damage += effect.damage * spent;
+            if (effect.undefendable) out.undefendable = true;
+          }
+          if (effect.cp) gainCp(self, effect.cp * spent);
+          out.log.push(`${self.name} spends ${spent} ${effect.status}`);
         }
         break;
       }
@@ -549,8 +588,9 @@ export function subRollEffects(
   dice: readonly Die[],
   outcomes: readonly SubRollOutcome[],
   otherwise: readonly Effect[],
+  total: readonly Effect[] = [],
 ): Effect[] {
-  const out: Effect[] = [];
+  const out: Effect[] = [...total];
 
   // Outcomes with `atLeast` fire once for the whole roll, not once per die.
   for (const outcome of outcomes) {
@@ -606,6 +646,9 @@ function growOnce(ctx: EffectContext, self: PlayerState, out: EffectOutcome): vo
 function holds(ctx: EffectContext, cond: Condition): boolean {
   const self = ctx.state.players[ctx.self];
   if ('has' in cond) return statusCount(self, cond.has) >= (cond.min ?? 1);
+  if ('chose' in cond) return ctx.chosen?.optionId === cond.chose;
+  // The dice in context are the ones the sub-roll just threw.
+  if ('rollAtLeast' in cond) return pipTotal(ctx.usedDice) >= cond.rollAtLeast;
   return (ctx.state.attack?.incoming ?? 0) >= cond.attackAtLeast;
 }
 

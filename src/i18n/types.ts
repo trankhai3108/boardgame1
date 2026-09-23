@@ -38,4 +38,5 @@ export const K = {
   statusText: (statusId: string) => `status.${statusId}.text`,
   dieLabel: (label: string) => `die.${label}`,
   passiveOption: (optionId: string) => `passive.${optionId}`,
+  choiceOption: (optionId: string) => `choice.${optionId}`,
 } as const;

@@ -127,7 +127,8 @@ drop modifiable; `ultimate` is not avoidable at all and may only be increased.
 prevent, spend to boost, upkeep damage, roll-attempt penalties and so on. Hero
 data only declares which tokens a hero brings; the engine decides how they
 behave. Anything that needs a human decision the engine cannot make carries a
-`manual` note instead of being silently approximated.
+`manual` note instead of being silently approximated — no hero ability uses one
+any more, and `npm run audit:abilities` fails loudly if one comes back.
 
 Implemented mechanically: Protect, Retribution, Crit, Accuracy, Blessing of
 Divinity, Stun, Concussion, Chi, Evasive, Knockdown, Blind, Entangle, Targeted,
@@ -372,8 +373,14 @@ attack that qualifies and Protect against a big one, takes upgrades it can
 afford, and sells down to the hand limit.
 
 `npm run audit` plays bot-only games across every table size and reports
-whether any of them stall. The last run: **60 games, 0 stalls, 6.4 rounds on
+whether any of them stall. The last run: **60 games, 0 stalls, 6.0 rounds on
 average.**
+
+`npm run audit:abilities` is the static counterpart: it walks every ability's
+effect tree — through `subRoll` outcomes, `choose` bodies and `when` branches —
+and reports abilities with no effects, rules still left to the players, and
+references to statuses or die symbols the hero does not have. The last run:
+**72 abilities, 0 empty, 0 left to the players, 0 broken references.**
 
 ## What is not built yet
 
@@ -387,12 +394,10 @@ average.**
 - **Choices the engine makes for you.** "A chosen player" resolves to yourself,
   and "remove a status effect of your choice" is only logged. These need a
   prompt in the UI.
-- **Effects recorded as `{ t: 'manual', note: '...' }`** — 22 distinct rules the
-  engine writes to the log instead of applying. `npm run audit` counts how
-  often each one actually comes up; the ones that matter most are Ninja's
-  "on two Masks", Shadow Thief's "on two Shadows", and the whole of the
-  Treant's Spirit economy. They are always logged, so nothing is silently
-  skipped, but the players have to apply them by hand.
+- **"Up to N" is always taken in full.** Overgrowth's "remove up to 2 Spirits"
+  and Combustion's "remove up to 4 Fire Mastery" spend everything available,
+  because on both cards spending more is strictly better. A card where holding
+  back could matter would need a prompt.
 - **Room cleanup.** A room's Durable Object storage is deleted when the last
   player leaves a lobby, but a game abandoned mid-flight keeps its storage
   until the object is manually cleared.

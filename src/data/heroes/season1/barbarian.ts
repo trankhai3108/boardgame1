@@ -114,7 +114,21 @@ export const BARBARIAN: Hero = {
             'Then deal dmg equal to the total roll value.',
             'If the roll value is at least [[dmg:14]], inflict *Concussion* [[concussion]].',
           ],
-          effects: [{ t: 'manual', note: 'Roll 3 dice; deal damage equal to the total. On 14+, inflict Concussion.' }],
+          effects: [
+            {
+              t: 'subRoll',
+              dice: 3,
+              outcomes: [],
+              total: [
+                { t: 'damage', amount: { perPip: 1 } },
+                {
+                  t: 'when',
+                  cond: { rollAtLeast: 14 },
+                  effects: [{ t: 'gainStatus', status: 'concussion', target: 'opponent' }],
+                },
+              ],
+            },
+          ],
         },
       ],
     },

@@ -70,9 +70,16 @@ export type Target =
  */
 export type ChoiceSpec =
   /** Pick a player. */
-  | { pick: 'player'; scope?: 'any' | 'opponents' | 'others' }
+  | { pick: 'player'; scope?: 'any' | 'opponents' | 'others'; optional?: boolean }
   /** Pick one status token, on any player the scope allows. */
-  | { pick: 'status'; scope?: 'any' | 'own' | 'opponents'; polarity?: 'positive' | 'negative' }
+  | {
+      pick: 'status';
+      scope?: 'any' | 'own' | 'opponents';
+      polarity?: 'positive' | 'negative';
+      /** Only these tokens are on offer, e.g. "you may discard Wellspring". */
+      only?: string[];
+      optional?: boolean;
+    }
   /** Pick a die from the roll currently on the table. */
   | { pick: 'die'; scope?: 'any' | 'own' | 'opponents'; optional?: boolean }
   /**
@@ -81,7 +88,12 @@ export type ChoiceSpec =
    * 'any' offers 1-6, 'shown' only values already on the table (Me Too!), and
    * 'adjacent' only one step either side of the die just picked (Flick!).
    */
-  | { pick: 'dieValue'; mode?: 'any' | 'shown' | 'adjacent' };
+  | { pick: 'dieValue'; mode?: 'any' | 'shown' | 'adjacent' }
+  /**
+   * Pick one of a named set of branches — "gain Evasive or gain Cleanse".
+   * The body then runs `when: { chose: id }` for whichever was taken.
+   */
+  | { pick: 'oneOf'; options: { id: string; label: string }[]; optional?: boolean };
 
 /**
  * A structured, executable description of what an ability or card does.
@@ -90,10 +102,17 @@ export type ChoiceSpec =
  * exist so the engine can actually resolve the effect.
  */
 export type Effect =
-  | { t: 'damage'; amount: number | DynamicAmount; undefendable?: boolean; target?: Target }
+  | {
+      t: 'damage';
+      amount: number | DynamicAmount;
+      undefendable?: boolean;
+      /** Pure dmg: not defendable, and nothing may reduce or avoid it. */
+      pure?: boolean;
+      target?: Target;
+    }
   | { t: 'heal'; amount: number | DynamicAmount; target?: Target }
   | { t: 'gainCP'; amount: number | DynamicAmount; target?: Target }
-  | { t: 'drawCard'; amount: number; target?: Target }
+  | { t: 'drawCard'; amount: number | DynamicAmount; target?: Target }
   | { t: 'discardCard'; amount: number; target?: Target }
   | { t: 'gainStatus'; status: string; amount?: number | DynamicAmount; target?: Target }
   | { t: 'removeStatus'; status?: string; amount?: number; target?: Target }
@@ -116,6 +135,12 @@ export type Effect =
       otherwise?: Effect[];
       /** Dice the player may re-roll before the result is applied. */
       rerolls?: number;
+      /**
+       * Resolved once for the roll as a whole, with every die in context, so
+       * `perPip` reads the total. This is what "deal damage equal to the total
+       * roll value" needs.
+       */
+      total?: Effect[];
     }
   /** Re-roll dice, optionally at a CP cost (e.g. Tithe). */
   | { t: 'reroll'; dice: number }
@@ -153,7 +178,23 @@ export type Effect =
   /** Grow N spirits: promote sapling -> dryad, seedling -> sapling, else plant. */
   | { t: 'growSpirit'; amount: number | DynamicAmount }
   /** Remove up to N spirits, lowest first, for 1 CP each. */
-  | { t: 'harvestSpirits'; max: number }
+  /**
+   * Spend Spirits from the top of the ladder down. Each one pays out `cp` CP
+   * (the printed Harvest) or adds `damage` to the attack on the table.
+   */
+  | { t: 'harvestSpirits'; max: number; cp?: number; damage?: number }
+  /**
+   * Spend up to `max` of a token to fuel the attack on the table: Combustion's
+   * "remove up to 4 Fire Mastery and deal 3 undefendable dmg per token".
+   */
+  | {
+      t: 'spendTokens';
+      status: string;
+      max: number;
+      damage?: number;
+      undefendable?: boolean;
+      cp?: number;
+    }
 
   /* --- misc --- */
   /** Raise a status effect's stack limit for the rest of the game. */
@@ -168,7 +209,11 @@ export type Condition =
   /** The resolving player holds at least `min` (default 1) of a token. */
   | { has: string; min?: number }
   /** The attack on the table already deals at least this much. */
-  | { attackAtLeast: number };
+  | { attackAtLeast: number }
+  /** The sub-roll just thrown totalled at least this much. */
+  | { rollAtLeast: number }
+  /** The player took this branch of the enclosing `pick: 'oneOf'` question. */
+  | { chose: string };
 
 /** Per-face results of a sub-roll, keyed by the symbol that came up. */
 export interface SubRollOutcome {
@@ -190,6 +235,10 @@ export interface DynamicAmount {
   perSymbol?: Record<DieSymbol, number>;
   /** Multiplier applied per token the resolving player holds. */
   perStatus?: Record<string, number>;
+  /** Multiplier applied per CP the resolving player has on their dial. */
+  perCp?: number;
+  /** Multiplier applied per pip showing on the dice in context. */
+  perPip?: number;
   /** Halve the total, rounding up — as all division in Dice Throne does. */
   halve?: boolean;
 }

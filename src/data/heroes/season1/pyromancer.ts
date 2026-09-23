@@ -79,11 +79,11 @@ export const PYROMANCER: Hero = {
           ],
           effects: [
             // Both scale with the number of Fiery Soul dice used to activate.
+            { t: 'gainStatus', status: 'fire-mastery', amount: { perSymbol: { fierySoul: 2 } } },
             {
-              t: 'manual',
-              note:
-                'Gain 2 Fire Mastery per Fiery Soul die used; deal 1 collateral dmg ' +
-                'to all opponents per Fiery Soul die used.',
+              t: 'damage',
+              target: 'allOpponents',
+              amount: { perSymbol: { fierySoul: 1 } },
             },
           ],
         },
@@ -134,10 +134,7 @@ export const PYROMANCER: Hero = {
           ],
           effects: [
             { t: 'gainStatus', status: 'fire-mastery', amount: 1 },
-            {
-              t: 'manual',
-              note: 'Remove up to 4 Fire Mastery tokens; deal 3 undefendable dmg per token removed.',
-            },
+            { t: 'spendTokens', status: 'fire-mastery', max: 4, damage: 3, undefendable: true },
           ],
         },
       ],
@@ -157,7 +154,7 @@ export const PYROMANCER: Hero = {
           ],
           effects: [
             { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
-            { t: 'manual', note: 'Deal 5 dmg + 1 per Fire Mastery token held.' },
+            { t: 'damage', amount: { base: 5, perStatus: { 'fire-mastery': 1 } } },
           ],
         },
       ],
@@ -180,8 +177,9 @@ export const PYROMANCER: Hero = {
             { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
             { t: 'gainStatus', status: 'stun', target: 'opponent' },
             {
-              t: 'manual',
-              note: 'Deal 1 undefendable dmg per Fire Mastery token held.',
+              t: 'damage',
+              undefendable: true,
+              amount: { perStatus: { 'fire-mastery': 1 } },
             },
             { t: 'damage', amount: 2, target: 'allOpponents' },
           ],
@@ -203,7 +201,7 @@ export const PYROMANCER: Hero = {
           ],
           effects: [
             { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
-            { t: 'manual', note: 'Deal 4 dmg + 2 per Fire Mastery token held.' },
+            { t: 'damage', amount: { base: 4, perStatus: { 'fire-mastery': 2 } } },
           ],
         },
       ],

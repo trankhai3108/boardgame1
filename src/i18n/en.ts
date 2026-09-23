@@ -147,6 +147,7 @@ export const EN: Dict = {
   'ui.play.pickStatus': 'Pick a status token.',
   'ui.play.pickDie': 'Pick a die.',
   'ui.play.pickValue': 'Pick a value.',
+  'ui.play.pickOption': 'Pick one.',
   'ui.action.declineChoice': 'Skip',
 
   'ui.lang': 'Language',

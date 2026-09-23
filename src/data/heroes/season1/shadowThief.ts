@@ -83,7 +83,7 @@ export const SHADOW_THIEF: Hero = {
           text: ['Gain [[cp:3]].', 'Then deal 1/2 [[cp]] as dmg *(rounded up)*.'],
           effects: [
             { t: 'gainCP', amount: 3 },
-            { t: 'manual', note: 'Deal half your CP (rounded up) as damage.' },
+            { t: 'damage', amount: { perCp: 1, halve: true } },
           ],
         },
       ],
@@ -126,7 +126,7 @@ export const SHADOW_THIEF: Hero = {
           text: ['Gain [[cp:3]].', 'Then deal [[cp]] as dmg.'],
           effects: [
             { t: 'gainCP', amount: 3 },
-            { t: 'manual', note: 'Deal damage equal to your CP.' },
+            { t: 'damage', amount: { perCp: 1 } },
           ],
         },
       ],
@@ -145,7 +145,12 @@ export const SHADOW_THIEF: Hero = {
             'Then gain *Shadows* [[shadows]] & *Sneak Attack* [[sneakattack]].',
           ],
           effects: [
-            { t: 'manual', note: 'Roll 1 die; deal half its value as pure damage.' },
+            {
+              t: 'subRoll',
+              dice: 1,
+              outcomes: [],
+              total: [{ t: 'damage', pure: true, amount: { perPip: 1, halve: true } }],
+            },
             { t: 'gainStatus', status: 'shadows' },
             { t: 'gainStatus', status: 'sneak-attack' },
           ],
@@ -173,12 +178,10 @@ export const SHADOW_THIEF: Hero = {
               outcomes: [
                 { on: 'dagger', effects: [{ t: 'gainStatus', status: 'poison', target: 'attacker' }] },
                 { on: 'shadow', effects: [{ t: 'gainStatus', status: 'sneak-attack' }] },
+                { on: 'shadow', atLeast: 2, effects: [{ t: 'gainStatus', status: 'shadows' }] },
               ],
             },
-            {
-              t: 'manual',
-              note: 'On two Shadows, also gain Shadows immediately, ignoring incoming dmg.',
-            },
+
           ],
         },
       ],
@@ -193,7 +196,7 @@ export const SHADOW_THIEF: Hero = {
           requirement: { kind: 'symbols', symbols: { card: 2 } },
           text: ['Draw [[card:1]] × [[cardsym]].'],
           effects: [
-            { t: 'manual', note: 'Draw 1 card per Card die used to activate.' },
+            { t: 'drawCard', amount: { perSymbol: { card: 1 } } },
           ],
         },
       ],
@@ -245,7 +248,7 @@ export const SHADOW_THIEF: Hero = {
           effects: [
             { t: 'gainCP', amount: 3 },
             { t: 'gainStatus', status: 'shadows' },
-            { t: 'manual', note: 'Deal damage equal to your CP, plus 5.' },
+            { t: 'damage', amount: { base: 5, perCp: 1 } },
           ],
         },
       ],

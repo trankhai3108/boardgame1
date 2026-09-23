@@ -4,6 +4,34 @@ import { EN } from '../en';
 import { VI } from '../vi';
 import { fill } from '../index';
 import { K } from '../types';
+import type { Effect } from '../../engine/types';
+
+/** Labels on every `pick: 'oneOf'` question buried in an effect tree. */
+function walkEffects(effects: readonly Effect[], out: Record<string, string>): void {
+  for (const effect of effects) {
+    switch (effect.t) {
+      case 'choose':
+        if (effect.request.pick === 'oneOf') {
+          for (const option of effect.request.options) {
+            out[K.choiceOption(option.id)] = option.label;
+          }
+        }
+        walkEffects(effect.effects, out);
+        break;
+      case 'when':
+        walkEffects(effect.effects, out);
+        walkEffects(effect.otherwise ?? [], out);
+        break;
+      case 'subRoll':
+        for (const outcome of effect.outcomes) walkEffects(outcome.effects, out);
+        walkEffects(effect.otherwise ?? [], out);
+        walkEffects(effect.total ?? [], out);
+        break;
+      default:
+        break;
+    }
+  }
+}
 
 /** Every translatable string the data carries, as key -> English. */
 function dataKeys(): Record<string, string> {
@@ -20,7 +48,13 @@ function dataKeys(): Record<string, string> {
       ability.tiers.forEach((tier, t) => {
         if (tier.requirementLabel) out[K.comboLabel(tier.requirementLabel)] = tier.requirementLabel;
         tier.text.forEach((l, i) => (out[K.abilityTier(hero.id, ability.id, t, i)] = l));
+        walkEffects(tier.effects, out);
       });
+      for (const option of ability.passive?.options ?? []) {
+        out[K.passiveOption(option.id)] = option.label;
+        walkEffects(option.effects, out);
+      }
+      walkEffects(ability.passive?.upkeep ?? [], out);
     }
     for (const status of hero.statusEffects) {
       out[K.statusName(status.id)] = status.name;
