@@ -67,6 +67,29 @@ export const PALADIN: Hero = {
           },
         ],
       },
+      passiveUpgrades: {
+        // The re-roll is unchanged; the draw comes down to 2 CP.
+        II: {
+          options: [
+            {
+              id: 'tithe-reroll',
+              cp: 1,
+              label: 'Re-roll a die',
+              window: 'roll',
+              effects: [
+                { t: 'choose', request: { pick: 'die', scope: 'own' }, effects: [{ t: 'rerollDie' }] },
+              ],
+            },
+            {
+              id: 'tithe-draw',
+              cp: 2,
+              label: 'Draw a card',
+              window: 'any',
+              effects: [{ t: 'drawCard', amount: 1 }],
+            },
+          ],
+        },
+      },
     },
     {
       id: 'retaliate',
@@ -83,6 +106,18 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { helmet: 3, prayer: 1 } },
+            text: ['A chosen player gains *Retribution* [[retribution]].', 'Gain [[cp:4]].'],
+            effects: [
+              { t: 'gainStatus', status: 'retribution', target: 'chosenPlayer' },
+              { t: 'gainCP', amount: 4 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'righteous-combat',
@@ -113,6 +148,54 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 3, helmet: 2 } },
+            text: ['Deal [[dmg:5]] dmg & roll [[die:3]]:', 'Resolve each face.'],
+            effects: [
+              { t: 'damage', amount: 5 },
+              {
+                t: 'subRoll',
+                dice: 3,
+                outcomes: [
+                  { on: 'sword', effects: [{ t: 'damage', amount: 2 }] },
+                  { on: 'helmet', effects: [{ t: 'damage', amount: 1 }] },
+                  { on: 'life', effects: [{ t: 'heal', amount: 2 }] },
+                  { on: 'prayer', effects: [{ t: 'gainCP', amount: 1 }] },
+                ],
+              },
+            ],
+          },
+        ],
+        III: [
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 2, helmet: 1 } },
+            text: ['Heal [[heal:2]].', 'Deal [[dmg:2]] *undefendable* dmg.'],
+            effects: [
+              { t: 'heal', amount: 2 },
+              { t: 'damage', amount: 2, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 3, helmet: 2 } },
+            text: ['Deal [[dmg:6]] dmg & roll [[die:3]]:', 'Resolve each face.'],
+            effects: [
+              { t: 'damage', amount: 6 },
+              {
+                t: 'subRoll',
+                dice: 3,
+                outcomes: [
+                  { on: 'sword', effects: [{ t: 'damage', amount: 2 }] },
+                  { on: 'helmet', effects: [{ t: 'damage', amount: 1 }] },
+                  { on: 'life', effects: [{ t: 'heal', amount: 2 }] },
+                  { on: 'prayer', effects: [{ t: 'gainCP', amount: 1 }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'mighty-prayer',
@@ -130,6 +213,47 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 2, prayer: 1 } },
+            text: ['Deal [[dmg:2]] *undefendable* dmg.', 'Gain *Crit* [[crit]] or *Accuracy* [[accuracy]].'],
+            effects: [
+              { t: 'damage', amount: 2, undefendable: true },
+              {
+                t: 'choose',
+                request: {
+                  pick: 'oneOf',
+                  options: [
+                    { id: 'paladin-crit', label: 'Gain Crit' },
+                    { id: 'paladin-accuracy', label: 'Gain Accuracy' },
+                  ],
+                },
+                effects: [
+                  {
+                    t: 'when',
+                    cond: { chose: 'paladin-crit' },
+                    effects: [{ t: 'gainStatus', status: 'crit' }],
+                    otherwise: [{ t: 'gainStatus', status: 'accuracy' }],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 3, prayer: 1 } },
+            text: [
+              'Deal [[dmg:4]] *undefendable* dmg.',
+              'Gain *Crit* [[crit]] & *Accuracy* [[accuracy]].',
+            ],
+            effects: [
+              { t: 'damage', amount: 4, undefendable: true },
+              { t: 'gainStatus', status: 'crit' },
+              { t: 'gainStatus', status: 'accuracy' },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'holy-attack',
@@ -156,6 +280,28 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: ['Heal [[heal:1]].', 'Deal [[dmg:7]] dmg.'],
+            effects: [
+              { t: 'heal', amount: 1 },
+              { t: 'damage', amount: 7 },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: ['Heal [[heal:2]].', 'Deal [[dmg:9]] dmg.'],
+            effects: [
+              { t: 'heal', amount: 2 },
+              { t: 'damage', amount: 9 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'righteous-prayer',
@@ -173,6 +319,26 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { prayer: 3 } },
+            text: ['Gain *Crit* [[crit]].', 'Gain [[cp:2]].'],
+            effects: [
+              { t: 'gainStatus', status: 'crit' },
+              { t: 'gainCP', amount: 2 },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { prayer: 4 } },
+            text: ['Gain [[cp:4]].', 'Deal [[dmg:8]] *undefendable* dmg.'],
+            effects: [
+              { t: 'gainCP', amount: 4 },
+              { t: 'damage', amount: 8, undefendable: true },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'holy-light',
@@ -204,6 +370,27 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { life: 2 } },
+            text: ['Heal [[heal:1]] × [[life]] & roll [[die:3]]:', 'Resolve each face.'],
+            effects: [
+              { t: 'heal', amount: { perSymbol: { life: 1 } } },
+              {
+                t: 'subRoll',
+                dice: 3,
+                outcomes: [
+                  { on: 'sword', effects: [{ t: 'gainStatus', status: 'crit' }] },
+                  { on: 'helmet', effects: [{ t: 'gainStatus', status: 'protect' }] },
+                  { on: 'life', effects: [{ t: 'drawCard', amount: 1 }] },
+                  { on: 'prayer', effects: [{ t: 'gainCP', amount: 2 }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'divine-defense',
@@ -233,6 +420,63 @@ export const PALADIN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 4 },
+            requirementLabel: 'DEFENSE ROLL 4',
+            text: [
+              'Deal [[dmg:1]] × [[sword]]. Prevent [[dmg:1]] × [[helmet]] & [[dmg:2]] × [[life]].',
+              'Gain [[cp:1]] × [[prayer]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 4,
+                outcomes: [
+                  { on: 'sword', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                  { on: 'helmet', effects: [{ t: 'prevent', amount: 1 }] },
+                  { on: 'life', effects: [{ t: 'prevent', amount: 2 }] },
+                  { on: 'prayer', effects: [{ t: 'gainCP', amount: 1 }] },
+                ],
+              },
+            ],
+          },
+        ],
+        III: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 4 },
+            requirementLabel: 'DEFENSE ROLL 4',
+            text: [
+              'Deal [[dmg:1]] × [[sword]]. Prevent [[dmg:1]] × [[helmet]] & [[dmg:2]] × [[life]].',
+              'Gain [[cp:1]] × [[prayer]]. With 2 × [[helmet]] and [[prayer]], gain *Protect* [[protect]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 4,
+                outcomes: [
+                  { on: 'sword', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                  { on: 'helmet', effects: [{ t: 'prevent', amount: 1 }] },
+                  { on: 'life', effects: [{ t: 'prevent', amount: 2 }] },
+                  { on: 'prayer', effects: [{ t: 'gainCP', amount: 1 }] },
+                  {
+                    on: 'helmet',
+                    atLeast: 2,
+                    effects: [
+                      {
+                        t: 'when',
+                        cond: { rolled: 'prayer' },
+                        effects: [{ t: 'gainStatus', status: 'protect' }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'resolute-faith',

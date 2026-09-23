@@ -51,7 +51,11 @@ for (const { card, hero } of seen.values()) {
   // when the hero has rules for the level it grants.
   const upgradeLands =
     card.type === 'upgrade' &&
-    hero.abilities.some((a) => a.id === card.upgrades && a.upgrades?.[card.upgradeLevel]);
+    hero.abilities.some(
+      (a) =>
+        a.id === card.upgrades &&
+        (a.upgrades?.[card.upgradeLevel] || a.passiveUpgrades?.[card.upgradeLevel]),
+    );
 
   if (!card.effects?.length && !upgradeLands) {
     byType[card.type].inert += 1;

@@ -69,6 +69,75 @@ export const TREANT: Hero = {
         },
       ],
       footer: ['You may discard 1 *Spirit* to inflict *Barbed Vine* [[barbedvine]].'],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { branch: 3 } },
+          text: ['Deal [[dmg:5]] dmg.', 'Inflict *Barbed Vine* [[barbedvine]].'],
+          effects: [
+            { t: 'damage', amount: 5 },
+            { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { branch: 4 } },
+          text: ['Deal [[dmg:6]] dmg.', 'Inflict *Barbed Vine* [[barbedvine]].'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { branch: 5 } },
+          text: ['Deal [[dmg:7]] dmg.', 'Inflict *Barbed Vine* [[barbedvine]].'],
+          effects: [
+            { t: 'damage', amount: 7 },
+            { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+          ],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { branch: 3 } },
+          text: ['Deal [[dmg:5]] dmg.', 'Inflict *Barbed Vine* [[barbedvine]].'],
+          effects: [
+            { t: 'damage', amount: 5 },
+            { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'growSpirit', amount: 1 }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { branch: 4 } },
+          text: ['Deal [[dmg:6]] dmg.', 'Inflict *Barbed Vine* [[barbedvine]].'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'growSpirit', amount: 1 }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { branch: 5 } },
+          text: ['Deal [[dmg:7]] dmg.', 'Inflict *Barbed Vine* [[barbedvine]].'],
+          effects: [
+            { t: 'damage', amount: 7 },
+            { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'growSpirit', amount: 1 }],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'tend',
@@ -91,6 +160,29 @@ export const TREANT: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { branch: 2, spirit: 2 } },
+            text: ['Grow 6 *Spirits*.'],
+            effects: [{ t: 'growSpirit', amount: 6 }],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { leaf: 2, spirit: 2 } },
+            text: [
+              'Draw [[card:1]]. Grow 4 *Spirits*.',
+              'A chosen player gains *Wellspring* [[wellspring]].',
+              'A chosen opponent is inflicted with *Barbed Vine* [[barbedvine]].',
+            ],
+            effects: [
+              { t: 'drawCard', amount: 1 },
+              { t: 'growSpirit', amount: 4 },
+              { t: 'gainStatus', status: 'wellspring', target: 'chosenPlayer' },
+              { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'fertilize',
@@ -128,6 +220,38 @@ export const TREANT: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { branch: 2, spirit: 2 } },
+            text: ['Inflict *Barbed Vine* [[barbedvine]].', 'Deal [[dmg:4]] *undefendable* dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+              { t: 'damage', amount: 4, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { branch: 2, leaf: 3 } },
+            text: [
+              'Deal [[dmg:4]] dmg & roll [[die:5]]:',
+              'On [[branch]], add [[dmg:1]]. On [[leaf]], gain *Wellspring* [[wellspring]].',
+              'On [[spirit]], grow 1 *Spirit*.',
+            ],
+            effects: [
+              { t: 'damage', amount: 4 },
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  { on: 'branch', effects: [{ t: 'damage', amount: 1 }] },
+                  { on: 'leaf', atLeast: 1, effects: [{ t: 'gainStatus', status: 'wellspring' }] },
+                  { on: 'spirit', effects: [{ t: 'growSpirit', amount: 1 }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'vengeful-vines',
@@ -145,6 +269,30 @@ export const TREANT: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { leaf: 3 } },
+            text: ['Deal [[dmg:1]] *undefendable* dmg per *Spirit*.'],
+            effects: [
+              {
+                t: 'damage',
+                undefendable: true,
+                amount: { perStatus: { seedling: 1, sapling: 1, dryad: 1 } },
+              },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: ['Inflict *Barbed Vine* [[barbedvine]].', 'Deal [[dmg:8]] dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+              { t: 'damage', amount: 8 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'natures-grasp',
@@ -168,6 +316,35 @@ export const TREANT: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { spirit: 3 } },
+            text: ['Heal [[heal:1]]. Gain [[cp:1]]. Draw [[card:1]].', 'Grow 1 *Spirit*.'],
+            effects: [
+              { t: 'heal', amount: 1 },
+              { t: 'gainCP', amount: 1 },
+              { t: 'drawCard', amount: 1 },
+              { t: 'growSpirit', amount: 1 },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { spirit: 4 } },
+            text: [
+              'Grow 2 *Spirits*.',
+              'Then deal [[dmg:6]] *undefendable* dmg + [[dmg:1]] dmg per *Spirit*.',
+            ],
+            effects: [
+              { t: 'growSpirit', amount: 2 },
+              {
+                t: 'damage',
+                undefendable: true,
+                amount: { base: 6, perStatus: { seedling: 1, sapling: 1, dryad: 1 } },
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'call-of-the-wild',
@@ -198,6 +375,39 @@ export const TREANT: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { branch: 2, spirit: 2 } },
+            text: ['Inflict *Barbed Vine* [[barbedvine]].', 'Deal [[dmg:4]] *undefendable* dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'barbed-vine', target: 'opponent' },
+              { t: 'damage', amount: 4, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: [
+              'Deal [[dmg:8]] dmg & roll [[die:5]]:',
+              'On [[branch]], add [[dmg:1]]. On [[leaf]], gain *Wellspring* [[wellspring]].',
+              'On [[spirit]], grow 1 *Spirit*.',
+            ],
+            effects: [
+              { t: 'damage', amount: 8 },
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  { on: 'branch', effects: [{ t: 'damage', amount: 1 }] },
+                  { on: 'leaf', atLeast: 1, effects: [{ t: 'gainStatus', status: 'wellspring' }] },
+                  { on: 'spirit', effects: [{ t: 'growSpirit', amount: 1 }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'rooted',
@@ -225,6 +435,41 @@ export const TREANT: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 4 },
+            requirementLabel: 'DEFENSE ROLL 4',
+            text: [
+              'Prevent [[dmg:1]] per [[branch]] and per [[spirit]].',
+              'On [[leaf]][[leaf]], grow 1 *Spirit*.',
+              'On [[spirit]][[spirit]], a chosen player gains *Wellspring* [[wellspring]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 4,
+                outcomes: [
+                  { on: 'branch', effects: [{ t: 'prevent', amount: 1 }] },
+                  { on: 'spirit', effects: [{ t: 'prevent', amount: 1 }] },
+                  { on: 'leaf', atLeast: 2, effects: [{ t: 'growSpirit', amount: 1 }] },
+                  {
+                    on: 'spirit',
+                    atLeast: 2,
+                    effects: [
+                      {
+                        t: 'choose',
+                        request: { pick: 'player' },
+                        effects: [{ t: 'gainStatus', status: 'wellspring', target: 'chosen' }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'wake-the-forest',

@@ -64,6 +64,34 @@ export const PYROMANCER: Hero = {
         },
       ],
       footer: ['Gain 1 *Fire Mastery* [[firemastery]].'],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { flame: 3 } },
+          text: ['Deal [[dmg:4]] dmg.', 'Gain 2 *Fire Mastery* [[firemastery]].'],
+          effects: [
+            { t: 'damage', amount: 4 },
+            { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { flame: 4 } },
+          text: ['Deal [[dmg:6]] dmg.', 'Gain 2 *Fire Mastery* [[firemastery]].'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { flame: 5 } },
+          text: ['Deal [[dmg:8]] dmg.', 'Gain 2 *Fire Mastery* [[firemastery]].'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'burning-soul',
@@ -88,6 +116,46 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { fierySoul: 2 } },
+          text: [
+            'Gain 2 × [[fierysoul]] *Fire Mastery* [[firemastery]].',
+            'Deal [[dmg:1]] × [[fierysoul]] *collateral* dmg to all opponents.',
+          ],
+          effects: [
+            { t: 'gainStatus', status: 'fire-mastery', amount: { perSymbol: { fierySoul: 2 } } },
+            { t: 'damage', target: 'allOpponents', amount: { perSymbol: { fierySoul: 1 } } },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { fierySoul: 3 } },
+          text: [
+            'Gain 2 × [[fierysoul]] *Fire Mastery* [[firemastery]].',
+            'Deal [[dmg:1]] × [[fierysoul]] *collateral* dmg to all opponents.',
+          ],
+          effects: [
+            { t: 'gainStatus', status: 'fire-mastery', amount: { perSymbol: { fierySoul: 2 } } },
+            { t: 'damage', target: 'allOpponents', amount: { perSymbol: { fierySoul: 1 } } },
+            { t: 'gainStatus', status: 'burn', target: 'opponent' },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { fierySoul: 4 } },
+          text: [
+            'Gain 2 × [[fierysoul]] *Fire Mastery* [[firemastery]].',
+            'Deal [[dmg:1]] × [[fierysoul]] *collateral* dmg to all opponents.',
+          ],
+          effects: [
+            { t: 'gainStatus', status: 'fire-mastery', amount: { perSymbol: { fierySoul: 2 } } },
+            { t: 'damage', target: 'allOpponents', amount: { perSymbol: { fierySoul: 1 } } },
+            { t: 'gainStatus', status: 'burn', target: 'opponent' },
+            { t: 'stackLimitBonus', status: 'fire-mastery', amount: 1 },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'pyroblast',
@@ -119,6 +187,59 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { flame: 3, meteor: 1 } },
+          text: ['Deal [[dmg:6]] dmg & roll [[die:2]]:', 'Resolve each face.'],
+          effects: [
+            { t: 'damage', amount: 6 },
+              {
+                t: 'subRoll',
+                dice: 2,
+                outcomes: [
+                  { on: 'flame', effects: [{ t: 'damage', amount: 3 }] },
+                  { on: 'blaze', effects: [{ t: 'gainStatus', status: 'burn', target: 'opponent' }] },
+                  {
+                    on: 'fierySoul',
+                    effects: [{ t: 'gainStatus', status: 'fire-mastery', amount: 2 }],
+                  },
+                  {
+                    on: 'meteor',
+                    effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+                  },
+                ],
+              },
+          ],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { flame: 3, meteor: 1 } },
+          text: ['Deal [[dmg:6]] dmg & roll [[die:2]]:', 'Resolve each face.'],
+          effects: [
+            { t: 'damage', amount: 6 },
+              {
+                t: 'subRoll',
+                dice: 2,
+                rerolls: 1,
+                outcomes: [
+                  { on: 'flame', effects: [{ t: 'damage', amount: 3 }] },
+                  { on: 'blaze', effects: [{ t: 'gainStatus', status: 'burn', target: 'opponent' }] },
+                  {
+                    on: 'fierySoul',
+                    effects: [{ t: 'gainStatus', status: 'fire-mastery', amount: 2 }],
+                  },
+                  {
+                    on: 'meteor',
+                    effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+                  },
+                ],
+              },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'combustion',
@@ -138,6 +259,24 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: {
+              kind: 'symbols',
+              symbols: { flame: 1, blaze: 1, fierySoul: 1, meteor: 1 },
+            },
+            text: [
+              'Gain 1 *Fire Mastery* [[firemastery]].',
+              'Then remove up to 4 and deal [[dmg:4]] *undefendable* dmg per token removed.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'fire-mastery', amount: 1 },
+              { t: 'spendTokens', status: 'fire-mastery', max: 4, damage: 4, undefendable: true },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'hot-streak',
@@ -158,6 +297,34 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { flame: 2, blaze: 2 } },
+            text: [
+              'Gain 2 *Fire Mastery* [[firemastery]]. Inflict *Burn* [[burn]].',
+              'Deal [[dmg:6]] dmg.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+              { t: 'gainStatus', status: 'burn', target: 'opponent' },
+              { t: 'damage', amount: 6 },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: [
+              'Gain 2 *Fire Mastery* [[firemastery]].',
+              'Then deal [[dmg:6]] + [[dmg:1]] dmg per *Fire Mastery* [[firemastery]].',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+              { t: 'damage', amount: { base: 6, perStatus: { 'fire-mastery': 1 } } },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'meteorite',
@@ -185,6 +352,33 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { meteor: 3 } },
+            text: ['Inflict *Knockdown* [[knockdown]], *Burn* [[burn]] & *Stun* [[stun]].'],
+            effects: [
+              { t: 'gainStatus', status: 'knockdown', target: 'opponent' },
+              { t: 'gainStatus', status: 'burn', target: 'opponent' },
+              { t: 'gainStatus', status: 'stun', target: 'opponent' },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { meteor: 4 } },
+            text: [
+              'Gain 2 *Fire Mastery* [[firemastery]]. Inflict *Stun* [[stun]].',
+              'Deal [[dmg:1]] *undefendable* dmg per *Fire Mastery* [[firemastery]].',
+              'Additionally, deal [[dmg:3]] *collateral* dmg to all opponents.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+              { t: 'gainStatus', status: 'stun', target: 'opponent' },
+              { t: 'damage', undefendable: true, amount: { perStatus: { 'fire-mastery': 1 } } },
+              { t: 'damage', amount: 3, target: 'allOpponents' },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'ignite',
@@ -205,6 +399,35 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { blaze: 2, fierySoul: 2 } },
+            text: [
+              'Increase *Fire Mastery* [[firemastery]] stack limit by 1.',
+              'Gain 5 *Fire Mastery* [[firemastery]]. Inflict *Burn* [[burn]].',
+            ],
+            effects: [
+              { t: 'stackLimitBonus', status: 'fire-mastery', amount: 1 },
+              { t: 'gainStatus', status: 'fire-mastery', amount: 5 },
+              { t: 'gainStatus', status: 'burn', target: 'opponent' },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: [
+              'Gain 2 *Fire Mastery* [[firemastery]]. Inflict *Burn* [[burn]].',
+              'Then deal [[dmg:5]] + [[dmg:2]] dmg per *Fire Mastery* [[firemastery]].',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'fire-mastery', amount: 2 },
+              { t: 'gainStatus', status: 'burn', target: 'opponent' },
+              { t: 'damage', amount: { base: 5, perStatus: { 'fire-mastery': 2 } } },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'molten-armor',
@@ -231,6 +454,64 @@ export const PYROMANCER: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: [
+              'Gain 1 × [[fierysoul]] *Fire Mastery* [[firemastery]].',
+              'Deal [[dmg:1]] *undefendable* dmg per [[flame]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  {
+                    on: 'fierySoul',
+                    effects: [{ t: 'gainStatus', status: 'fire-mastery', amount: 1 }],
+                  },
+                  {
+                    on: 'flame',
+                    effects: [
+                      { t: 'damage', amount: 1, undefendable: true, target: 'attacker' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        III: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: [
+              'Gain 1 × [[fierysoul]] *Fire Mastery* [[firemastery]].',
+              'Deal [[dmg:2]] *undefendable* dmg per [[flame]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  {
+                    on: 'fierySoul',
+                    effects: [{ t: 'gainStatus', status: 'fire-mastery', amount: 1 }],
+                  },
+                  {
+                    on: 'flame',
+                    effects: [
+                      { t: 'damage', amount: 2, undefendable: true, target: 'attacker' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'scorch-the-earth',

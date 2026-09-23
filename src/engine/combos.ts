@@ -86,6 +86,15 @@ export function tiersAt(ability: Ability, level: AbilityLevel | undefined): Abil
   return ability.tiers;
 }
 
+/** What a passive slot offers at a given level. */
+export function passiveAt(ability: Ability, level: AbilityLevel | undefined) {
+  if (level === 'III') {
+    return ability.passiveUpgrades?.III ?? ability.passiveUpgrades?.II ?? ability.passive;
+  }
+  if (level === 'II') return ability.passiveUpgrades?.II ?? ability.passive;
+  return ability.passive;
+}
+
 /** The level a player's copy of a slot is at. */
 export function levelOf(ability: Ability, levels?: AbilityLevels): AbilityLevel {
   return levels?.[ability.id] ?? ability.level;

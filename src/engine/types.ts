@@ -322,6 +322,10 @@ export interface Ability {
    * hero only needs entries for the levels that actually change.
    */
   upgrades?: Partial<Record<Exclude<AbilityLevel, 'I'>, AbilityTier[]>>;
+  /**
+   * The same thing for a passive slot, which has options rather than tiers.
+   */
+  passiveUpgrades?: Partial<Record<Exclude<AbilityLevel, 'I'>, PassiveSpec>>;
   /** Passive abilities have no dice requirement, only text. */
   text?: string[];
   /** Text printed below every tier, applying to all of them. */

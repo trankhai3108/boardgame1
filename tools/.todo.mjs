@@ -10,7 +10,7 @@ for (const h of HERO_LIST) {
   for (const [key, name] of want) {
     const [id, lvl] = key.split(':');
     const a = h.abilities.find((x) => x.id === id);
-    if (!a?.upgrades?.[lvl]) gaps.push(`${id} ${lvl}`);
+    if (!a?.upgrades?.[lvl] && !a?.passiveUpgrades?.[lvl]) gaps.push(`${id} ${lvl}`);
   }
   missing += gaps.length;
   console.log(`${h.name.padEnd(14)} ${String(want.size).padStart(2)} upgrade cards, ${String(gaps.length).padStart(2)} without rules${gaps.length ? '  -> ' + gaps.join(', ') : ''}`);

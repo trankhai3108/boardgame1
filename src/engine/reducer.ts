@@ -2,7 +2,7 @@ import type { Ability, Card, Effect, Hero, PassiveOption } from './types';
 import type { Action } from './actions';
 import { resolveDamage, type DamageModifier, type DamageType } from './damage';
 import { makeDice, rerollUnkept } from './dice';
-import { bestAbilities, levelOf, matchRequirement, tiersAt } from './combos';
+import { bestAbilities, levelOf, matchRequirement, passiveAt, tiersAt } from './combos';
 import {
   diceOnTable,
   emptyOutcome,
@@ -86,7 +86,7 @@ function runUpkeepPassives(state: GameState, lookup: HeroLookup): void {
   const hero = heroOf(lookup, player);
 
   for (const ability of hero.abilities) {
-    const effects = ability.passive?.upkeep;
+    const effects = passiveAt(ability, levelOf(ability, player.abilityLevels))?.upkeep;
     if (!effects?.length) continue;
     startRun(
       state,
@@ -117,7 +117,8 @@ function activatePassive(
   const player = state.players[playerIndex];
   const hero = heroOf(lookup, player);
   const ability = findAbility(hero, abilityId);
-  const option = ability.passive?.options?.find((o) => o.id === optionId);
+  const spec = passiveAt(ability, levelOf(ability, state.players[playerIndex].abilityLevels));
+  const option = spec?.options?.find((o) => o.id === optionId);
   if (!option) throw new Error(`${ability.name} has no option "${optionId}"`);
   if (option.window === 'roll' && !state.roll) throw new Error('No dice on the table');
   if (player.cp < option.cp) throw new Error(`Not enough CP for ${option.label}`);
@@ -153,7 +154,8 @@ export function passiveOptionsFor(
   const hero = heroOf(lookup, player);
   const out: { abilityId: string; option: PassiveOption }[] = [];
   for (const ability of hero.abilities) {
-    for (const option of ability.passive?.options ?? []) {
+    const spec = passiveAt(ability, levelOf(ability, player.abilityLevels));
+    for (const option of spec?.options ?? []) {
       if (option.cp > player.cp) continue;
       if (option.window === 'roll' && !state.roll) continue;
       out.push({ abilityId: ability.id, option });
