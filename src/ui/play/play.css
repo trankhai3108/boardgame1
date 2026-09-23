@@ -152,12 +152,18 @@
 
 .dice-row { display: flex; gap: 0.6rem; justify-content: center; margin: 1rem 0; }
 
+/*
+ * One die. Everything inside it is a fraction of `--die`, so shrinking a die
+ * shrinks its face and its pip count with it — setting only the box left a
+ * full-size icon in a half-size square with the number printed over it.
+ */
 .die {
-  width: 4rem;
-  height: 4rem;
+  --die: 4rem;
+  width: var(--die);
+  height: var(--die);
   display: grid;
   place-items: center;
-  border-radius: 0.7rem;
+  border-radius: calc(var(--die) * 0.17);
   border: 2px solid transparent;
   background: #2b2b30;
   cursor: pointer;
@@ -166,13 +172,18 @@
 
 .die:disabled { cursor: default; }
 .die--kept { border-color: #e8c34a; background: #3a3524; }
-.die .dt-icon { width: 2.4rem; height: 2.4rem; margin: 0; }
+.die .dt-icon {
+  width: calc(var(--die) * 0.58);
+  height: calc(var(--die) * 0.58);
+  margin: 0;
+}
 
 .die__value {
   position: absolute;
-  top: 0.15rem;
-  left: 0.35rem;
-  font-size: 0.75rem;
+  top: calc(var(--die) * 0.04);
+  left: calc(var(--die) * 0.09);
+  font-size: calc(var(--die) * 0.2);
+  line-height: 1;
   color: rgb(255 255 255 / 45%);
 }
 
@@ -465,13 +476,15 @@
 
 .pending__prompt { margin: 0.5rem 0 0; font-size: 0.95rem; }
 
-.die--sub { width: 3.2rem; height: 3.2rem; border-color: #d9a441; }
+.die--sub { --die: 3.2rem; border-color: #d9a441; }
 .die--sub:disabled { opacity: 1; cursor: default; }
 
+/* A die not yet thrown, sized like the ones beside it. */
 .die--blank {
-  width: 3.2rem;
-  height: 3.2rem;
-  border-radius: 0.7rem;
+  --die: 3.2rem;
+  width: var(--die);
+  height: var(--die);
+  border-radius: calc(var(--die) * 0.17);
   border: 1px dashed var(--line);
   background: #0a1016;
   display: inline-block;

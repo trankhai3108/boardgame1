@@ -115,7 +115,8 @@
 }
 
 .stage .dice-row { margin: 0; gap: 0.35rem; }
-.stage .die { width: 2.4rem; height: 2.4rem; }
+.stage .die,
+.stage .die--blank { --die: clamp(2.2rem, 4.2vh, 3.2rem); }
 .stage .attack-summary { margin: 0; flex: 1 1 18rem; padding: 0.35rem 0.6rem; }
 .stage .attack-summary__amount { font-size: 1.3rem; }
 .stage .ability-list {
@@ -258,16 +259,16 @@
 
 .board {
   display: grid;
-  /* The portrait is the middle of the board, not the bulk of it: it gets a
-     share, capped, and the wings keep their natural width. */
-  /* The wings sit at the edges with the portrait between them, filling the
-     row. Shrink-wrapped and centred, the board left a third of the screen
-     empty on either side and had to print at a size nobody could read. */
-  grid-template-columns: auto minmax(6rem, 20rem) auto;
+  /* Wing, middle, wing — the middle sized by the Ultimate strip it holds. */
+  grid-template-columns: auto auto auto;
   gap: 0.6rem;
   justify-content: stretch;
   align-items: stretch;
   width: 100%;
+  /* Fills its row: with the wings flat the ability cards are short, and the
+     height they leave goes to the portrait rather than to a gap. */
+  height: 100%;
+  min-height: 0;
   padding: 0.45rem 0.6rem;
   border-radius: 0.8rem;
   background:
@@ -275,13 +276,19 @@
     var(--dt-hero-board, #1b2732);
 }
 
-/* Four ability slots a side, two by two, exactly as the folding board prints. */
+/*
+ * Four ability slots a side, in one row each.
+ *
+ * Two by two made each card half the size it could be while a whole row of
+ * screen went unused above and below the board. Laid out flat, the row is the
+ * binding constraint instead of the column, and every card is readable.
+ */
 .board__wing {
   display: grid;
   /* `max-content`, not `auto`: the board stretches the wings to fill the row,
-     and auto columns would take that slack as a gap between the two cards
-     rather than leaving it at the edge of the board. */
-  grid-template-columns: repeat(2, max-content);
+     and auto columns would take that slack as a gap between the cards rather
+     than leaving it at the edge of the board. */
+  grid-template-columns: repeat(4, max-content);
   gap: 0.35rem;
   align-content: start;
   justify-content: center;
@@ -291,12 +298,11 @@
 
 .board__wing .dt-ability { height: 100%; }
 
-/* The Ultimate prints across the foot of the board, under everything else. */
+/* The Ultimate sits under the portrait, between the two wings. */
 .board__ult {
-  grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  margin-top: 0.2rem;
+  width: 100%;
 }
 
 .board__centre {
@@ -307,13 +313,17 @@
   min-width: 0;
 }
 
-/* The portrait fills whatever the ability wings leave, and never asks for more
-   than that — it is the one thing on the board with no fixed size, so left to
-   itself it would set the height of the whole row. */
+/*
+ * The portrait takes whatever the ability wings and the Ultimate leave.
+ *
+ * It is the one thing on the board with no size of its own, so it needs a
+ * floor — given none it collapses to nothing — and it must not set the height
+ * of the row, so it never asks for more than it is given.
+ */
 .board__portrait {
   width: 100%;
   flex: 1 1 0;
-  min-height: 0;
+  min-height: clamp(2.5rem, 7vh, 8rem);
   object-fit: cover;
   object-position: center 18%;
   border-radius: 0.6rem;
@@ -786,16 +796,21 @@
  * that screen sat empty either side of the board; width alone would push the
  * board off the bottom. The smaller of the two is the one that fits.
  */
-/* Tuned by measuring: at a 900px window a slot above about 105px puts the
-   second row of the board past the bottom of its seat. */
-.board { --slot: min(clamp(96px, 10vw, 230px), clamp(96px, 11.3vh, 230px)); }
+/*
+ * With the wings flat, eight slots and the Ultimate strip share the width of
+ * the row, so width is what binds; the height clamp is only there to stop a
+ * very wide, very short window printing cards taller than the seat.
+ */
+.board { --slot: min(clamp(104px, 8.2vw, 230px), clamp(104px, 22vh, 230px)); }
 
-/* A seat holding the dice has less height for its board, so the slots come
-   down to meet it rather than the board scrolling out from under the player
-   who is mid-turn. */
-.seat:has(.stage:not(:empty)) .board {
-  --slot: min(clamp(92px, 9vw, 200px), clamp(92px, 10.2vh, 200px));
-}
+/*
+ * Both seats print at the same size.
+ *
+ * The seat holding the dice used to shrink its slots to make room, back when
+ * the board was two rows deep and height was what bound it. Flat, it fits
+ * either way — and shrinking one side left its half of the board padded out
+ * with a portrait twice the size of the other player's.
+ */
 
 .board__slot .dt-ability {
   --dt-ability-w: var(--slot);
@@ -846,7 +861,7 @@
 
 .hand__card:last-child { margin-right: 0; }
 
-.hand__card .dt-card { --dt-card-w: clamp(72px, 8.4vh, 118px); }
+.hand__card .dt-card { --dt-card-w: clamp(84px, 10.5vh, 148px); }
 
 /*
  * A small lift, just enough to say which card the pointer is on.

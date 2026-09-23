@@ -197,14 +197,15 @@ function HeroBoard({
     <div className="board">
       <div className="board__wing">{rest.slice(0, half).map(slot)}</div>
 
+      {/* Portrait and Ultimate down the middle, four ability slots either
+          side of them, exactly as the folding board prints. */}
       <div className="board__centre">
         {hero.portrait ? <img className="board__portrait" src={hero.portrait} alt="" /> : null}
         <h3 className="board__hero">{t(K.hero(hero.id, 'name'), hero.name)}</h3>
+        {ultimate ? <div className="board__ult">{slot(ultimate)}</div> : null}
       </div>
 
       <div className="board__wing">{rest.slice(half).map(slot)}</div>
-
-      {ultimate ? <div className="board__ult">{slot(ultimate)}</div> : null}
     </div>
   );
 }
