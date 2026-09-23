@@ -18,7 +18,10 @@
   position: relative;
   width: var(--dt-card-w);
   aspect-ratio: 450 / 703;
-  font-size: calc(var(--dt-card-w) / 450 * 16px);
+  /* length x number / number. Dividing by 450 and then multiplying by 16px
+     would be px squared, which is not a length, and the whole declaration is
+     dropped — leaving every `em` inside the card resolving against 16px. */
+  font-size: calc(var(--dt-card-w) * 16 / 450);
   font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
   border-radius: 1.4em;
   background: #000;

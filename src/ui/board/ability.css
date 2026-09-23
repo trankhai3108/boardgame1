@@ -15,7 +15,9 @@
   position: relative;
   width: var(--dt-ability-w);
   min-height: calc(var(--dt-ability-w) * 1.5);
-  font-size: calc(var(--dt-ability-w) / 210 * 13px);
+  /* length x number / number; dividing first and then multiplying by 13px
+     would be px squared, and the declaration would be dropped. */
+  font-size: calc(var(--dt-ability-w) * 13 / 210);
   font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
   display: flex;
   flex-direction: column;
