@@ -1,4 +1,5 @@
 import type { DamageModifier } from './damage';
+import type { Effect } from './types';
 
 /**
  * What each status token actually *does*, as opposed to what its leaflet text
@@ -13,8 +14,24 @@ export interface StatusBehaviour {
   /** Spend while damage is pending against you. */
   spendToPrevent?: DamageModifier;
 
+  /**
+   * Spend with no attack on the table at all.
+   *
+   * Most tokens answer an attack, but several do not: Cleanse sheds a status,
+   * a Sapling is cashed in for health and CP, Wellspring is rolled in a Main
+   * Phase, a Seedling re-rolls one of your own dice. `when` says where the
+   * token may be cashed, and `effects` is what cashing it does.
+   */
+  spendFreely?: {
+    /** 'any' is any point in your own turn; 'roll' needs dice on the table. */
+    when: 'any' | 'roll';
+    effects: Effect[];
+  };
+
   /** Spend while your own attack's damage is pending. */
   spendToBoost?: {
+    /** Chi: may not be spent for damage on the turn it was gained. */
+    notTheTurnGained?: boolean;
     /** Minimum damage the attack must already deal (Crit needs 5). */
     minDamage?: number;
     /** Flat damage added. */
@@ -94,12 +111,23 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
   /* --- Monk --- */
   chi: {
     spendToPrevent: { source: 'Chi', kind: 'prevent', amount: 1 },
-    spendToBoost: { add: 1 },
-    manual: 'Chi may not be used to increase dmg on the turn it was gained.',
+    // Printed on the token: not on the turn it was gained.
+    spendToBoost: { add: 1, notTheTurnGained: true },
   },
   evasive: { spendToAvoid: { avoidOn: [1, 2] } },
   knockdown: { skipOrpUnlessPaid: 2 },
-  cleanse: { manual: 'Spend to remove a single status effect token from yourself.' },
+  cleanse: {
+    spendFreely: {
+      when: 'any',
+      effects: [
+        {
+          t: 'choose',
+          request: { pick: 'status', scope: 'own' },
+          effects: [{ t: 'removeStatus', target: 'chosen' }],
+        },
+      ],
+    },
+  },
 
   /* --- Moon Elf --- */
   blind: { failOrpOn: [1, 2] },
@@ -132,8 +160,24 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
   },
 
   /* --- Treant --- */
-  seedling: { manual: 'Spend to re-roll 1 of your dice.' },
-  sapling: { manual: 'Spend to Heal 1 and gain 1 CP, or spend with 1 CP to draw 1 card.' },
+  seedling: {
+    spendFreely: {
+      when: 'roll',
+      effects: [
+        { t: 'choose', request: { pick: 'die', scope: 'own' }, effects: [{ t: 'rerollDie' }] },
+      ],
+    },
+  },
+  sapling: {
+    spendFreely: {
+      when: 'any',
+      effects: [
+        { t: 'heal', amount: 1 },
+        { t: 'gainCP', amount: 1 },
+      ],
+    },
+    manual: 'May instead be spent with 1 CP to draw a card.',
+  },
   dryad: {
     spendToBoost: { add: 3 },
     manual: 'May instead be spent to prevent an incoming negative status effect.',
@@ -142,7 +186,17 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
     damagePerExtraRollAttempt: { amount: 1, maxPerTurn: 2 },
   },
   wellspring: {
-    manual: 'Spend during your Main Phase, roll 1 die and heal half its value (rounded up).',
+    spendFreely: {
+      when: 'any',
+      effects: [
+        {
+          t: 'subRoll',
+          dice: 1,
+          outcomes: [],
+          total: [{ t: 'heal', amount: { perPip: 1, halve: true } }],
+        },
+      ],
+    },
   },
 };
 

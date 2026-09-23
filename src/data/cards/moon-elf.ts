@@ -68,6 +68,7 @@ export const MOON_ELF_CARDS: Card[] = [
       'Roll 5 dice: add damage equal to the number of Arrows.',
       'Inflict Entangle.',
     ],
+    tags: ['Attack Modifier'],
     window: { needsAttack: true, who: 'attacker' },
     effects: [
       {
@@ -91,6 +92,7 @@ export const MOON_ELF_CARDS: Card[] = [
       'Foot -> Inflict Entangle;',
       'Moon -> Inflict Blind.',
     ],
+    tags: ['Attack Modifier'],
     window: { needsAttack: true, who: 'attacker' },
     effects: [
       {

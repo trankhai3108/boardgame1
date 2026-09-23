@@ -369,6 +369,11 @@ function finishRun(
       break;
     case 'status':
       break;
+    case 'token':
+      // A token cashed in acts on its owner, so the healing and CP are already
+      // applied; only the log and any damage it produced still need a home.
+      finishCard(state, lookup, outcome, sink.playerIndex, ctx.target, source);
+      break;
     case 'passive':
       finishCard(state, lookup, outcome, sink.playerIndex, ctx.target, source);
       break;
@@ -657,14 +662,32 @@ function finishDefense(
 /* ------------------------------------------------------------------ */
 
 function spendStatus(state: GameState, lookup: HeroLookup, playerId: string, statusId: string): void {
-  const attack = state.attack;
-  if (!attack) throw new Error('Status tokens are spent against a pending attack');
-
   const index = state.players.findIndex((p) => p.id === playerId);
   const player = state.players[index];
+  if (index < 0) throw new Error('No such player');
   if (statusCount(player, statusId) === 0) throw new Error(`${player.name} has no ${statusId}`);
 
   const behaviour = behaviourOf(statusId);
+
+  // Tokens that answer nothing: Cleanse, a Sapling cashed in, Wellspring
+  // rolled in a Main Phase, a Seedling spent over your own dice.
+  if (behaviour.spendFreely && canSpendFreely(state, index, behaviour.spendFreely.when)) {
+    removeStatus(player, statusId, 1);
+    log(state, `spends ${statusId}`, player);
+    const hero = heroOf(lookup, player);
+    startRun(
+      state,
+      lookup,
+      behaviour.spendFreely.effects,
+      { self: index, target: index, heroId: hero.id, usedDice: [], defensive: false, chosen: null },
+      { kind: 'token', playerIndex: index, statusId },
+      statusId,
+    );
+    return;
+  }
+
+  const attack = state.attack;
+  if (!attack) throw new Error('Status tokens are spent against a pending attack');
   const isDefender = index === attack.defender;
   const isAttacker = index === attack.attacker;
 
@@ -694,6 +717,9 @@ function spendStatus(state: GameState, lookup: HeroLookup, playerId: string, sta
     if (boost.minDamage !== undefined && attack.incoming < boost.minDamage) {
       throw new Error(`${statusId} needs an attack of at least ${boost.minDamage} dmg`);
     }
+    if (boost.notTheTurnGained && player.gainedThisTurn.includes(statusId)) {
+      throw new Error(`${statusId} cannot add damage on the turn it was gained`);
+    }
     removeStatus(player, statusId, 1);
     if (boost.undefendable) {
       attack.type = 'undefendable';
@@ -708,6 +734,20 @@ function spendStatus(state: GameState, lookup: HeroLookup, playerId: string, sta
   }
 
   throw new Error(`${statusId} cannot be spent here`);
+}
+
+/**
+ * True when a token with no attack to answer may be cashed in right now.
+ *
+ * It is your own turn's business, so it waits for your turn and for the
+ * engine not to be mid-question; a token spent over dice also needs dice.
+ */
+function canSpendFreely(state: GameState, index: number, when: 'any' | 'roll'): boolean {
+  if (state.attack) return false;
+  if (state.pending.length > 0) return false;
+  if (index !== state.active) return false;
+  if (when === 'roll') return state.roll !== null;
+  return state.phase === 'main1' || state.phase === 'main2' || state.roll !== null;
 }
 
 /** Parks a one-die token roll on the pending stack for its owner to throw. */
@@ -909,6 +949,23 @@ function sellCard(state: GameState, cardId: string): void {
  * progress — and either may come from any seat, which is what makes an
  * opponent's hand worth fearing.
  */
+/**
+ * True while an Ultimate Ability locks this player out.
+ *
+ * Rulebook v2.4.1 p.10: "The damage and effects of an Ultimate Ability can be
+ * enhanced, but cannot be reduced, prevented, avoided, responded to, or
+ * interrupted by anything. Opponents may take no action of any kind from the
+ * time it is Activated until the conclusion of the Roll Phase."
+ *
+ * The attacker is not an opponent of their own Ultimate, so they may still
+ * add to it — an Ultimate is Modifiable, increase-only.
+ */
+export function lockedOutByUltimate(state: GameState, playerIndex: number): boolean {
+  const attack = state.attack;
+  if (!attack || attack.type !== 'ultimate') return false;
+  return playerIndex !== attack.attacker;
+}
+
 export function canPlayCard(
   state: GameState,
   playerIndex: number,
@@ -917,6 +974,7 @@ export function canPlayCard(
   lookup: HeroLookup,
 ): boolean {
   if (state.phase === 'gameOver') return false;
+  if (lockedOutByUltimate(state, playerIndex) || stunned(state, playerIndex)) return false;
   const player = state.players[playerIndex];
   if (!player || !player.hand.includes(cardId)) return false;
   if (!isAlive(state, playerIndex)) return false;
@@ -1410,6 +1468,21 @@ function cardActions(state: GameState, lookup: HeroLookup): Action[] {
 }
 
 /** The actions available right now, for a UI or a bot to choose from. */
+/**
+ * True while Stun stops this player doing anything.
+ *
+ * The token reads "while stunned the holder may take no actions of any kind";
+ * it comes off when the player who inflicted it takes their extra Offensive
+ * Roll Phase, which `grantsExtraOrpToInflicter` handles.
+ */
+export function stunned(state: GameState, playerIndex: number): boolean {
+  if (playerIndex === state.active) return false;
+  return (
+    behaviourOf('stun').grantsExtraOrpToInflicter === true &&
+    statusCount(state.players[playerIndex], 'stun') > 0
+  );
+}
+
 export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
   if (state.phase === 'gameOver') return [];
 
@@ -1443,6 +1516,17 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
   // the owner's turn their window allows.
   for (const { abilityId, option } of passiveOptionsFor(state, lookup, state.active)) {
     out.push({ type: 'usePassive', abilityId, optionId: option.id });
+  }
+
+  // So are the tokens that answer no attack: Cleanse, a Sapling, Wellspring,
+  // a Seedling over your own dice.
+  const acting = state.players[state.active];
+  for (const [statusId, count] of Object.entries(acting.statuses)) {
+    if (count <= 0) continue;
+    const free = behaviourOf(statusId).spendFreely;
+    if (free && canSpendFreely(state, state.active, free.when)) {
+      out.push({ type: 'spendStatus', playerId: acting.id, statusId });
+    }
   }
 
   switch (state.phase) {
@@ -1495,7 +1579,7 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
       const defHero = heroOf(lookup, defender);
 
       if (!attack.defenseResolved) {
-        if (attack.type === 'normal') {
+        if (attack.type === 'normal' && !stunned(state, attack.defender)) {
           for (const ability of defHero.abilities.filter((a) => a.kind === 'defensive')) {
             out.push({ type: 'chooseDefense', abilityId: ability.id });
           }
@@ -1505,12 +1589,22 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
       }
 
       for (const [index, p] of state.players.entries()) {
+        // An Ultimate shuts every opponent out completely; only the attacker
+        // may still add to it. See `lockedOutByUltimate`.
+        if (lockedOutByUltimate(state, index) || stunned(state, index)) continue;
         for (const statusId of Object.keys(p.statuses)) {
           const behaviour = behaviourOf(statusId);
+          const boostable =
+            behaviour.spendToBoost &&
+            !(behaviour.spendToBoost.notTheTurnGained && p.gainedThisTurn.includes(statusId)) &&
+            !(
+              behaviour.spendToBoost.minDamage !== undefined &&
+              attack.incoming < behaviour.spendToBoost.minDamage
+            );
           const usable =
             (index === attack.defender &&
               (behaviour.spendToPrevent || behaviour.spendToAvoid || behaviour.autoAvoid)) ||
-            (index === attack.attacker && behaviour.spendToBoost);
+            (index === attack.attacker && boostable);
           if (usable) out.push({ type: 'spendStatus', playerId: p.id, statusId });
         }
       }
