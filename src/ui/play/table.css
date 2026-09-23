@@ -150,8 +150,14 @@
 
 .seat--far .seat__actions { order: -1; }
 
-/* The far end is further away, so it is drawn smaller and dimmer. */
-.seat--far { --seat-scale: 0.92; opacity: 0.94; }
+/*
+ * The far end is further away, so it is drawn a little dimmer.
+ *
+ * Dimmed with a colour, not with `opacity`: any opacity below 1 makes the
+ * seat a stacking context, which trapped the hover panels inside it — the
+ * near seat painted straight over the top half of an opponent's ability.
+ */
+.seat--far { --seat-tint: color-mix(in srgb, var(--dt-hero-primary, #2b3a47) 82%, #0b1219); }
 .seat--far .board__portrait { max-height: 8rem; }
 
 /* Whose turn it is. */
@@ -195,7 +201,26 @@
 
 .seat--targeted { border-color: #c9584f; box-shadow: 0 0 1.4rem rgb(201 88 79 / 22%); }
 .seat--you .vitals__name { color: #7ff0cf; }
-.seat--out { opacity: 0.45; filter: grayscale(0.7); }
+/*
+ * A defeated seat, greyed out without `opacity` or `filter` — either one
+ * would make the seat a stacking context and trap its hover panels behind
+ * the seat below, which is the bug that made an opponent's ability
+ * half-readable.
+ */
+.seat--out {
+  --seat-tint: #29323a;
+  border-color: #1d262d;
+  color: #6c7b87;
+}
+
+.seat--out .board,
+.seat--out .dt-ability,
+.seat--out .board__portrait,
+.seat--out .vitals__avatar {
+  --dt-hero-board: #1d262d;
+  --dt-hero-ability-bg: linear-gradient(170deg, #8d949a, #6d747a);
+  --dt-hero-ability-edge: #5d666e;
+}
 
 /* ---------------------------------------------------------------- */
 /* Vitals rail (left)                                                 */

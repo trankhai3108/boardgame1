@@ -68,6 +68,15 @@ function worstDegree(expression: string): number {
   return Math.max(...terms.map(degreeOf));
 }
 
+/** The declaration blocks of every rule whose selector matches. */
+function blocksFor(css: string, match: RegExp): { selector: string; body: string }[] {
+  const out: { selector: string; body: string }[] = [];
+  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (match.test(selector)) out.push({ selector: selector.trim(), body });
+  }
+  return out;
+}
+
 describe('stylesheets', () => {
   const files = stylesheets('src');
 
@@ -94,5 +103,25 @@ describe('stylesheets', () => {
       }
     }
     expect(bad, `px squared is not a length:\n${bad.join('\n')}`).toHaveLength(0);
+  });
+
+  /*
+   * A hover panel is `position: fixed` so it can rise above everything. That
+   * only works while nothing between it and the page makes a stacking
+   * context: an opacity below 1, a transform or a filter on a seat traps the
+   * panel inside that seat, and the seat below paints over the top half of
+   * it. This is the bug that made an opponent's ability half-readable, twice.
+   */
+  it('never makes a seat a stacking context', () => {
+    const bad: string[] = [];
+    for (const [file, css] of files) {
+      for (const { selector, body } of blocksFor(css, /(^|,|\s)\.seat(--[\w-]+)?\s*$/)) {
+        const opacity = body.match(/(?:^|;)\s*opacity:\s*([\d.]+)/);
+        if (opacity && Number(opacity[1]) < 1) bad.push(`${file}: ${selector} sets opacity ${opacity[1]}`);
+        if (/(?:^|;)\s*transform:\s*(?!none)/.test(body)) bad.push(`${file}: ${selector} sets transform`);
+        if (/(?:^|;)\s*filter:\s*(?!none)/.test(body)) bad.push(`${file}: ${selector} sets filter`);
+      }
+    }
+    expect(bad, `these trap the hover panels:\n${bad.join('\n')}`).toHaveLength(0);
   });
 });
