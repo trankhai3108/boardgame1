@@ -45,10 +45,12 @@ const table = (game: GameState, you = -1) =>
   render(<GameTable game={game} you={you} onAction={() => {}} />);
 
 describe('the play table renders', () => {
-  it('draws the hero board and the token board from the first turn', () => {
+  it('draws both ends of the table from the first turn', () => {
     const html = table(newGame());
-    expect(html).toContain('hero-panel');
-    expect(html).toContain('token-board');
+    expect(html).toContain('seat seat--near');
+    expect(html).toContain('seat seat--far');
+    expect(html).toContain('board__wing');
+    expect(html).toContain('rail__token');
     // Ninja's own tokens are listed whether or not any are in front of them.
     expect(html).toContain('Smoke Bomb');
     expect(html).toContain('Ninjutsu');
@@ -64,8 +66,8 @@ describe('the play table renders', () => {
       { id: 'd4', value: 6, kept: false },
     ];
     const html = table(game);
-    expect(html).toContain('hero-panel__slot--live');
-    expect(html).toContain('hero-panel__ready');
+    expect(html).toContain('board__slot--live');
+    expect(html).toContain('board__ready');
   });
 
   it('draws a sub-roll as dice the player has yet to throw', () => {
@@ -109,16 +111,21 @@ describe('the play table renders', () => {
     expect(html).not.toContain('hand__seats');
   });
 
-  it('shows your own board by default, with a button for every other seat', () => {
+  it('seats you at the near end and your opponent across the table', () => {
     const html = table(newGame(), 1); // you are seat 1, the Treant
-    expect(html).toContain('board-seats');
-    // Both seats are reachable, and the one on show is your own. The pattern
-    // pins the closing quote so it does not also catch board-seat__avatar.
-    expect(html.match(/class="board-seat(?: board-seat--on)?"/g)?.length).toBe(2);
-    expect(html).toContain('board-seat--on');
-    expect(html).toContain('Treant');
-    // Your own board is not somebody else's, so no peek warning.
-    expect(html).not.toContain('hero-panel__peek');
+
+    const near = html.indexOf('seat seat--near');
+    const far = html.indexOf('seat seat--far');
+    expect(near).toBeGreaterThan(-1);
+    expect(far).toBeGreaterThan(-1);
+    // The opponent is drawn first, so they are across the table rather than
+    // under your own board.
+    expect(far).toBeLessThan(near);
+
+    expect(html).toContain('data-seat="1"');
+    expect(html).toContain('data-seat="0"');
+    // Only the two of them, so there is no row of spare seats.
+    expect(html).not.toContain('table__other');
   });
 
   it('survives the end of the game', () => {

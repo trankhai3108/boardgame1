@@ -195,7 +195,13 @@ function playerFor(ctx: EffectContext, target: Target | undefined): PlayerState 
 function changeHealth(ctx: EffectContext, target: Target | undefined, delta: number): PlayerState {
   const index = indexFor(ctx, target);
   const team = teamOf(ctx.state, index);
+  const before = team.health;
   team.health = Math.min(team.maxHealth, team.health + delta);
+  const moved = team.health - before;
+  if (moved > 0) ctx.state.events.push({ kind: 'heal', player: index, amount: moved });
+  if (moved < 0) {
+    ctx.state.events.push({ kind: 'damage', player: index, amount: -moved, type: 'normal' });
+  }
   return ctx.state.players[index];
 }
 

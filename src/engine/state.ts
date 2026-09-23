@@ -222,6 +222,25 @@ export interface LogEntry {
   message: string;
 }
 
+/**
+ * What the action just applied actually did, for the table to animate.
+ *
+ * The log is prose for a person to read; this is the same moment in a form the
+ * interface can act on, so the table never has to parse a sentence to know a
+ * card was played. Cleared at the top of every reduce, so it only ever
+ * describes the one action, and it travels over the wire with the state.
+ *
+ * Everything here is public at the table anyway — a played card is face up,
+ * tokens sit in the open and damage is announced — so nothing is redacted.
+ */
+export type TableEvent =
+  /** Seat `player` played the card with this id (no instance suffix). */
+  | { kind: 'card'; player: number; cardId: string }
+  /** Seat `player` spent one of a token. */
+  | { kind: 'spend'; player: number; statusId: string }
+  | { kind: 'damage'; player: number; amount: number; type: DamageType }
+  | { kind: 'heal'; player: number; amount: number };
+
 export interface GameState {
   mode: GameMode;
   players: PlayerState[];
@@ -246,6 +265,8 @@ export interface GameState {
   extraOrp: number;
   rng: RngState;
   log: LogEntry[];
+  /** What the last action did. See `TableEvent`. */
+  events: TableEvent[];
   /** Id of the winning team once the game is over. */
   winner: string | null;
 }
@@ -345,6 +366,7 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
     extraOrp: 0,
     rng,
     log: [{ round: 1, phase: 'main1', message: `Game start (${MODES[mode].label})` }],
+    events: [],
     winner: null,
   };
 }

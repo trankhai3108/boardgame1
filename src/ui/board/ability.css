@@ -8,16 +8,26 @@
 
 .dt-ability {
   --dt-ability-w: 210px;
+  /*
+   * How big the print is, separately from how wide the card is.
+   *
+   * These are the same thing for an ordinary ability slot, but the Ultimate is
+   * a wide strip rather than a big card: it is twice the width at the same
+   * size print, so it sets this back down.
+   */
+  --dt-ability-type: var(--dt-ability-w);
   --dt-ab-bg: var(--dt-hero-ability-bg, linear-gradient(170deg, #eaf0f4 0%, #c6d5df 45%, #a9bccb 100%));
   --dt-ab-ink: var(--dt-hero-ability-ink, #16314d);
   --dt-ab-edge: var(--dt-hero-ability-edge, #8fa6b8);
 
   position: relative;
   width: var(--dt-ability-w);
-  min-height: calc(var(--dt-ability-w) * 1.5);
+  /* Tall enough to read as a board slot, short enough not to print a
+     half-card of empty space under a one-line ability. */
+  min-height: calc(var(--dt-ability-type) * 1.05);
   /* length x number / number; dividing first and then multiplying by 13px
      would be px squared, and the declaration would be dropped. */
-  font-size: calc(var(--dt-ability-w) * 13 / 210);
+  font-size: calc(var(--dt-ability-type) * 13 / 210);
   font-family: 'Barlow Semi Condensed', system-ui, sans-serif;
   display: flex;
   flex-direction: column;
@@ -161,6 +171,8 @@
 
 /* --- Ultimate banner lays the dice row beside the text --- */
 .dt-ability--ultimate {
+  /* Wide strip, ordinary print. Matches the 2.1x width the board asks for. */
+  --dt-ability-type: calc(var(--dt-ability-w) / 2.1);
   flex-direction: row;
   align-items: center;
   gap: 1em;

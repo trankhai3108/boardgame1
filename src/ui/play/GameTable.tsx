@@ -8,22 +8,22 @@ import { legalActions, passiveOptionsFor, type HeroLookup } from '../../engine/r
 import {
   RULES,
   healthOf,
-  teamOf,
+  isAlive,
+  opponentsOf,
   topPending,
   type GameState,
-  type PlayerState,
 } from '../../engine/state';
-import { behaviourOf } from '../../engine/statusBehaviour';
-import type { Hero } from '../../engine/types';
 import { fill } from '../../i18n';
 import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { CardView } from '../card/Card';
-import { STATUS_ICONS, SYMBOL_ICONS } from '../card/iconRegistry';
+import { SYMBOL_ICONS } from '../card/iconRegistry';
 import { renderMarkup } from '../card/markup';
-import { HeroPanel } from './HeroPanel';
 import { PendingPanel } from './PendingPanel';
+import { Seat } from './Seat';
+import { TableFx, useTableFx } from './TableFx';
 import './play.css';
+import './table.css';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 
@@ -39,127 +39,35 @@ export interface GameTableProps {
   toolbar?: React.ReactNode;
 }
 
-function StatusTokens({
-  player,
-  spendable,
-  onSpend,
-}: {
-  player: PlayerState;
-  spendable: Set<string>;
-  onSpend: (statusId: string) => void;
-}) {
+/** What each pip value means on the dice currently on the table. */
+function DiceKey({ heroId }: { heroId: string }) {
   const { t } = useI18n();
-  const entries = Object.entries(player.statuses).filter(([, n]) => n > 0);
-  if (entries.length === 0) return <span className="app__subtitle">{t('ui.play.noTokens')}</span>;
-
+  const hero = HEROES[heroId];
   return (
-    <div className="tokens">
-      {entries.map(([statusId, count]) => {
-        const Icon = STATUS_ICONS[statusId];
-        const canSpend = spendable.has(statusId);
+    <div className="dice-key">
+      {hero.dieFaces.map((face) => {
+        const Icon = SYMBOL_ICONS[face.symbol];
         return (
-          <button
-            key={statusId}
-            type="button"
-            className={`token${canSpend ? ' token--spendable' : ''}`}
-            disabled={!canSpend}
-            onClick={() => onSpend(statusId)}
-            title={t(K.statusSummary(statusId), behaviourOf(statusId).manual ?? statusId)}
+          <span
+            key={face.value}
+            className="dice-key__face"
+            title={t(K.dieLabel(face.label), face.label)}
           >
-            {Icon ? <Icon /> : null}
-            {t(K.statusName(statusId), statusId)}
-            {count > 1 ? ` x${count}` : ''}
-          </button>
+            <b>{face.value}</b>
+            {Icon ? <Icon /> : face.symbol}
+          </span>
         );
       })}
     </div>
   );
 }
 
-function PlayerPanel({
-  game,
-  index,
-  hero,
-  spendable,
-  onSpend,
-  isYou,
-  isTarget,
-}: {
-  game: GameState;
-  index: number;
-  hero: Hero;
-  spendable: Set<string>;
-  onSpend: (statusId: string) => void;
-  isYou: boolean;
-  isTarget: boolean;
-}) {
-  const { t } = useI18n();
-  const player = game.players[index];
-  const team = teamOf(game, index);
-  const health = healthOf(game, index);
-  const active = game.active === index;
-  const out = health <= 0;
-
-  const classes = [
-    'player-panel',
-    active ? 'player-panel--active' : '',
-    isYou ? 'player-panel--you' : '',
-    isTarget ? 'player-panel--target' : '',
-    out ? 'player-panel--out' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  return (
-    <section className={classes}>
-      <header className="player-panel__head">
-        {hero.portrait ? <img className="player-panel__avatar" src={hero.portrait} alt="" /> : null}
-        <span className="player-panel__names">
-          <span className="player-panel__name">
-            {player.name}
-            {isYou ? <span className="player-panel__you">{t('ui.play.you')}</span> : null}
-            {player.isBot ? (
-              <span className="player-panel__bot">{t('ui.play.bot')}</span>
-            ) : null}
-          </span>
-          <span className="player-panel__hero">{t(K.hero(hero.id, 'name'), hero.name)}</span>
-        </span>
-        {game.teams.length > 1 && team.members.length > 1 ? (
-          <span className={`team-chip team-chip--${player.team}`}>{team.name}</span>
-        ) : null}
-      </header>
-
-      <div className="dials">
-        <div className="dial dial--health">
-          <div className="dial__value">{health}</div>
-          <div className="dial__label">{t('ui.play.health')}</div>
-          <div className="health-bar">
-            <div
-              className="health-bar__fill"
-              style={{ width: `${Math.max(0, Math.min(100, (health / team.maxHealth) * 100))}%` }}
-            />
-          </div>
-        </div>
-        <div className="dial dial--cp">
-          <div className="dial__value">{player.cp}</div>
-          <div className="dial__label">{t('ui.play.cp')}</div>
-        </div>
-        <div className="dial">
-          <div className="dial__value">{player.hand.length}</div>
-          <div className="dial__label">{t('ui.play.cards')}</div>
-        </div>
-      </div>
-
-      <StatusTokens player={player} spendable={spendable} onSpend={onSpend} />
-    </section>
-  );
-}
-
 export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   const { t } = useI18n();
   const options = useMemo(() => legalActions(game, lookup), [game]);
-  /** Board on show below the table; null follows the default seat. */
-  const [peekSeat, setPeekSeat] = useState<number | null>(null);
+  /** Opponent across the table; null lets the game decide. */
+  const [facing, setFacing] = useState<number | null>(null);
+  const fx = useTableFx(game);
 
   const active = game.players[game.active];
   const activeHero = HEROES[active.heroId];
@@ -206,11 +114,46 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
         ? game.players[targeting.opponents[0]]
         : active;
 
-  // The board below the table is yours online, and follows whoever is acting
-  // on a shared screen so the right hero is always face up — until the reader
-  // asks to look at someone else's.
-  const defaultSeat = you >= 0 ? you : game.players.indexOf(actingPlayer);
-  const boardSeat = peekSeat ?? defaultSeat;
+  /*
+   * Who sits at which end.
+   *
+   * The near end is yours, so your own board is always the one in front of
+   * you; on a shared screen it follows whoever is acting, because that is the
+   * player holding the device. The far end is whoever you are up against right
+   * now — the two ends of the attack on the table, failing that the seat the
+   * reader picked, failing that the first opponent still standing.
+   */
+  const nearSeat = you >= 0 ? you : game.players.indexOf(actingPlayer);
+
+  const facedByPlay =
+    attack && attack.attacker === nearSeat
+      ? attack.defender
+      : attack && attack.defender === nearSeat
+        ? attack.attacker
+        : null;
+
+  const opponents = opponentsOf(game, nearSeat);
+  const farSeat =
+    facedByPlay ??
+    (facing !== null && facing !== nearSeat ? facing : null) ??
+    opponents.find((i) => isAlive(game, i)) ??
+    opponents[0] ??
+    nearSeat;
+
+  const others = game.players
+    .map((_p, i) => i)
+    .filter((i) => i !== nearSeat && i !== farSeat);
+
+  const seatSide = (player: number): 'near' | 'far' | null =>
+    player === nearSeat ? 'near' : player === farSeat ? 'far' : null;
+
+  /** Damage this seat took on the action just applied, for the flinch. */
+  const hitOn = (seat: number): number | null => {
+    const total = game.events
+      .filter((e) => e.kind === 'damage' && e.player === seat)
+      .reduce((sum, e) => sum + (e.kind === 'damage' ? e.amount : 0), 0);
+    return total > 0 ? total : null;
+  };
 
   const winnerTeam = game.teams.find((team) => team.id === game.winner);
 
@@ -224,52 +167,77 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
         </div>
       ) : null}
 
-      <div className="play__setup">
-        {toolbar}
-        <span className="app__subtitle">
-          {fill(t('ui.play.round'), { n: game.round })} · {t(`ui.mode.${game.mode}`)}
-        </span>
-        {!myTurn ? (
-          <span className="turn-hint">
-            {fill(t('ui.play.waitingOn'), { name: actingPlayer.name })}
-          </span>
-        ) : null}
-      </div>
+      {/* The phase is the one thing you always need to know and the one thing
+          a screen cannot show the way a board does, so it sits across the top
+          of the table rather than inside a panel. */}
+      <header className="table__phase">
+        <div className="table__phase-side">{toolbar}</div>
 
-      <div className={`play play--seats-${game.players.length}`}>
-        <div className="play__side">
-          {game.players.map((_p, i) =>
-            i % 2 === 0 ? (
-              <PlayerPanel
-                key={i}
-                game={game}
-                index={i}
-                hero={HEROES[game.players[i].heroId]}
-                spendable={spendableFor(i)}
-                onSpend={(statusId) =>
-                  onAction({ type: 'spendStatus', playerId: game.players[i].id, statusId })
-                }
-                isYou={you === i}
-                isTarget={attack?.defender === i}
-              />
-            ) : null,
+        <div className="table__phase-main">
+          <span className="table__phase-name">{t(`ui.phase.${game.phase}`)}</span>
+          <span className="table__phase-sub">
+            {fill(t('ui.play.round'), { n: game.round })} · {t(`ui.mode.${game.mode}`)}
+            {game.roll
+              ? ` · ${fill(t('ui.play.rollCount'), {
+                  used: game.roll.attemptsUsed,
+                  max: game.roll.maxAttempts,
+                })}`
+              : ''}
+          </span>
+          {myTurn ? (
+            <span className="table__phase-turn">{t('ui.play.yourStep')}</span>
+          ) : (
+            <span className="turn-hint">
+              {fill(t('ui.play.waitingOn'), { name: actingPlayer.name })}
+            </span>
           )}
         </div>
 
+        <div className="table__phase-side table__phase-side--end">
+          <DiceKey heroId={game.players[game.roll?.playerIndex ?? game.active].heroId} />
+        </div>
+      </header>
+
+      <div className="table">
+        <TableFx game={game} fx={fx} seatSide={seatSide} />
+
+        <Seat
+          game={game}
+          index={farSeat}
+          you={you}
+          side="far"
+          boardWidth={190}
+          hit={hitOn(farSeat)}
+          spendable={spendableFor(farSeat)}
+          onSpend={(statusId) =>
+            onAction({ type: 'spendStatus', playerId: game.players[farSeat].id, statusId })
+          }
+        />
+
+        {others.length > 0 ? (
+          <div className="table__others">
+            {others.map((i) => {
+              const theirs = HEROES[game.players[i].heroId];
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={`table__other${game.active === i ? ' table__other--active' : ''}`}
+                  onClick={() => setFacing(i)}
+                  title={t('ui.play.faceSeat')}
+                >
+                  {theirs.portrait ? (
+                    <img className="table__other-avatar" src={theirs.portrait} alt="" />
+                  ) : null}
+                  <span className="table__other-name">{game.players[i].name}</span>
+                  <span className="table__other-hp">{healthOf(game, i)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         <section className="tray">
-          <header className="tray__phase">
-            <span className="tray__phase-name">{t(`ui.phase.${game.phase}`)}</span>
-            {game.roll ? (
-              <span className="tray__attempts">
-                {fill(t('ui.play.rollCount'), {
-                  used: game.roll.attemptsUsed,
-                  max: game.roll.maxAttempts,
-                })}
-              </span>
-            ) : (
-              <span className="tray__attempts">{actingPlayer.name}</span>
-            )}
-          </header>
 
           {targeting ? (
             <div className="attack-summary attack-summary--targeting">
@@ -489,45 +457,21 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           </div>
         </section>
 
-        <div className="play__side">
-          {game.players.map((_p, i) =>
-            i % 2 === 1 ? (
-              <PlayerPanel
-                key={i}
-                game={game}
-                index={i}
-                hero={HEROES[game.players[i].heroId]}
-                spendable={spendableFor(i)}
-                onSpend={(statusId) =>
-                  onAction({ type: 'spendStatus', playerId: game.players[i].id, statusId })
-                }
-                isYou={you === i}
-                isTarget={attack?.defender === i}
-              />
-            ) : null,
-          )}
-        </div>
+        <Seat
+          game={game}
+          index={nearSeat}
+          you={you}
+          side="near"
+          boardWidth={230}
+          hit={hitOn(nearSeat)}
+          spendable={spendableFor(nearSeat)}
+          onSpend={(statusId) =>
+            onAction({ type: 'spendStatus', playerId: game.players[nearSeat].id, statusId })
+          }
+        />
       </div>
 
       <Hand game={game} you={you} options={options} onAction={onAction} />
-
-      {boardSeat >= 0 ? (
-        <HeroPanel
-          game={game}
-          index={boardSeat}
-          yourSeat={you}
-          pinned={peekSeat !== null && peekSeat !== defaultSeat}
-          onSelectSeat={setPeekSeat}
-          spendable={spendableFor(boardSeat)}
-          onSpend={(statusId) =>
-            onAction({
-              type: 'spendStatus',
-              playerId: game.players[boardSeat].id,
-              statusId,
-            })
-          }
-        />
-      ) : null}
 
       <h2 className="section-title">{t('ui.section.log')}</h2>
       <div className="log">
@@ -567,6 +511,14 @@ function Hand({
   const { t } = useI18n();
   const shared = you < 0;
   const [seat, setSeat] = useState<number | null>(null);
+  /*
+   * Face down by choice.
+   *
+   * On a shared screen the hand is the one thing the person across the table
+   * must not see, so it can be turned over between turns without leaving the
+   * game. It also buys back a lot of height on a small screen.
+   */
+  const [shown, setShown] = useState(true);
 
   // On a shared screen, follow the turn unless the reader picked a seat.
   const index = shared ? (seat ?? game.active) : you;
@@ -580,11 +532,22 @@ function Hand({
 
   return (
     <>
-      <h2 className="section-title">
-        {t('ui.play.hand')} · {player.name}
-      </h2>
+      <div className="hand__bar">
+        <button
+          type="button"
+          className={`hand__toggle${shown ? '' : ' hand__toggle--off'}`}
+          aria-pressed={shown}
+          onClick={() => setShown((v) => !v)}
+        >
+          {t(shown ? 'ui.play.hideHand' : 'ui.play.showHand')}
+        </button>
+        <h2 className="section-title section-title--flush">
+          {t('ui.play.hand')} · {player.name}
+          <span className="hand__count">{player.hand.length}</span>
+        </h2>
+      </div>
 
-      {shared ? (
+      {shown && shared ? (
         <div className="hand__seats">
           {game.players.map((p, i) => (
             <button
@@ -611,7 +574,7 @@ function Hand({
         </div>
       ) : null}
 
-      {player.hand.length === 0 ? (
+      {!shown ? null : player.hand.length === 0 ? (
         <p className="app__subtitle">{t('ui.play.emptyHand')}</p>
       ) : (
         <div className="hand">

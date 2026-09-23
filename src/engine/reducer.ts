@@ -247,6 +247,7 @@ function applyDamage(state: GameState, lookup: HeroLookup, index: number, amount
   if (amount <= 0) return;
 
   team.health -= amount;
+  state.events.push({ kind: 'damage', player: index, amount, type: state.attack?.type ?? 'normal' });
 
   if (team.health <= 0) {
     const rescue = behaviourOf('blessing-of-divinity').preventDefeatSetHealth;
@@ -1004,6 +1005,8 @@ function playCard(
     throw new Error(`${card.name} cannot be played right now`);
   }
 
+  state.events.push({ kind: 'card', player: playerIndex, cardId: card.id });
+
   if (card.type === 'upgrade') {
     if (!card.upgrades || !card.upgradeLevel) throw new Error(`${card.name} has no upgrade target`);
     const current = player.abilityLevels[card.upgrades];
@@ -1277,6 +1280,9 @@ function sameAnswer(a: ChoiceAnswer, b: ChoiceAnswer): boolean {
  */
 export function reduce(state: GameState, action: Action, lookup: HeroLookup): GameState {
   const next: GameState = structuredClone(state);
+  // The events describe one action, so the previous action's are dropped
+  // before this one runs.
+  next.events = [];
   if (next.phase === 'gameOver') return next;
 
   const player = next.players[next.active];
@@ -1327,9 +1333,12 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
       chooseDefense(next, lookup, action.abilityId);
       break;
 
-    case 'spendStatus':
+    case 'spendStatus': {
+      const at = next.players.findIndex((p) => p.id === action.playerId);
       spendStatus(next, lookup, action.playerId, action.statusId);
+      if (at >= 0) next.events.push({ kind: 'spend', player: at, statusId: action.statusId });
       break;
+    }
 
     case 'resolveAttack':
       if (next.pending.length > 0) throw new Error('Settle the pending roll first');
