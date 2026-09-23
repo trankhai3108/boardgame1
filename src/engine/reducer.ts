@@ -33,6 +33,7 @@ import {
   type PendingStep,
   type PlayerState,
 } from './state';
+import { dealDamage } from './health';
 import { needsTargetingRoll, resolveTargetRoll } from './targeting';
 
 /** Heroes are looked up by id, so the reducer stays free of the data layer. */
@@ -242,35 +243,7 @@ function applyBarbedVine(
  * Blessing of Divinity, and ends the game if only one team is left standing.
  */
 function applyDamage(state: GameState, lookup: HeroLookup, index: number, amount: number): void {
-  const player = state.players[index];
-  const team = teamOf(state, index);
-  if (amount <= 0) return;
-
-  team.health -= amount;
-  state.events.push({ kind: 'damage', player: index, amount, type: state.attack?.type ?? 'normal' });
-
-  if (team.health <= 0) {
-    const rescue = behaviourOf('blessing-of-divinity').preventDefeatSetHealth;
-    if (rescue !== undefined && statusCount(player, 'blessing-of-divinity') > 0) {
-      removeStatus(player, 'blessing-of-divinity', 1);
-      team.health = rescue;
-      log(state, `Blessing of Divinity: health set to ${rescue}`, player);
-    }
-  }
-
-  if (team.health <= 0) {
-    team.health = 0;
-    log(state, `${team.name} is out`);
-    // With three teams on the table, one going out does not end the game: play
-    // continues until a single team is left.
-    const survivors = state.teams.filter((t) => t.health > 0);
-    if (survivors.length <= 1) {
-      state.phase = 'gameOver';
-      state.pending = [];
-      state.winner = survivors.length === 1 ? survivors[0].id : null;
-      log(state, survivors.length === 1 ? `${survivors[0].name} wins` : 'draw');
-    }
-  }
+  dealDamage(state, index, amount, state.attack?.type ?? 'normal');
   void lookup;
 }
 

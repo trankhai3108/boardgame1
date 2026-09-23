@@ -10,6 +10,7 @@ import type {
 } from './types';
 import type { DamageType } from './damage';
 import { symbolOf } from './dice';
+import { dealDamage } from './health';
 import { rollDie } from './rng';
 import {
   addStatus,
@@ -299,10 +300,13 @@ export function runEffects(
         } else if (effect.target === 'allOpponents') {
           // Collateral: dealt immediately, outside the attack being resolved.
           // Each opposing team takes it once per member, as the rules require.
-          for (const team of ctx.state.teams) {
+          for (const [index, team] of ctx.state.teams.entries()) {
             if (team === teamOf(ctx.state, ctx.self)) continue;
             const hits = team.members.length * amount;
-            team.health -= hits;
+            // Through the shared path, so it can put a team out and end the
+            // game exactly as any other damage does.
+            const someone = ctx.state.players.findIndex((p) => p.team === index);
+            dealDamage(ctx.state, someone, hits, 'collateral');
             out.log.push(`${team.name} takes ${hits} collateral dmg`);
           }
         } else {
