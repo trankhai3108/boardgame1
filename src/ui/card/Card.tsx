@@ -110,13 +110,26 @@ export function CardView({ card, width, className = '', onClick }: CardProps) {
     ? ({ '--dt-card-w': typeof width === 'number' ? `${width}px` : width } as React.CSSProperties)
     : undefined;
 
-  const art = (
-    <div className={`dt-card__art${card.art ? '' : ' dt-card__art--empty'}`}>
-      {card.art ? (
-        <img src={card.art} alt="" />
-      ) : (
-        <span className="dt-card__art-note">{t('ui.art.placeholder')}</span>
-      )}
+  /*
+   * Upgrade cards have no illustration.
+   *
+   * On the printed card the picture sits behind the rules text, so the crops
+   * we have all carry that text and none of them are usable. Rather than leave
+   * a dashed box saying "art", the panel prints the level the card upgrades
+   * to — which is the whole point of the card — as a watermark over the hero's
+   * own colours. It reads as a designed face rather than a missing file.
+   */
+  const art = card.art ? (
+    <div className="dt-card__art">
+      <img src={card.art} alt="" />
+    </div>
+  ) : isUpgrade && card.upgradeLevel ? (
+    <div className="dt-card__art dt-card__art--crest">
+      <span className="dt-card__crest">{card.upgradeLevel}</span>
+    </div>
+  ) : (
+    <div className="dt-card__art dt-card__art--empty">
+      <span className="dt-card__art-note">{t('ui.art.placeholder')}</span>
     </div>
   );
 

@@ -186,6 +186,38 @@
   display: block;
 }
 
+/*
+ * The face of an upgrade card, which never has an illustration.
+ *
+ * A deep field in the card's own frame colour with the level it grants
+ * watermarked across it, so the empty half of the card carries the card's
+ * meaning instead of an apology.
+ */
+.dt-card__art--crest {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(90% 120% at 50% 15%, rgb(255 255 255 / 7%), transparent 60%),
+    linear-gradient(170deg,
+      color-mix(in srgb, var(--dt-star) 34%, #0d1218) 0%,
+      color-mix(in srgb, var(--dt-star) 16%, #0a0e13) 55%,
+      #080b0f 100%);
+}
+
+.dt-card__crest {
+  font-family: 'Oswald', 'Barlow Semi Condensed', sans-serif;
+  font-size: 7.5em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: transparent;
+  background: linear-gradient(180deg, rgb(255 255 255 / 42%), rgb(255 255 255 / 10%));
+  background-clip: text;
+  -webkit-background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0.04em 0.06em rgb(0 0 0 / 55%));
+}
+
 /* Placeholder shown until real art is dropped in */
 .dt-card__art--empty::after {
   content: '';
