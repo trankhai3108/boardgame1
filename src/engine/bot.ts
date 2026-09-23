@@ -325,6 +325,14 @@ export function runBots(
   cap = 400,
 ): GameState {
   let current = state;
+  /*
+   * A whole bot turn reaches the table as one state, and every reduce clears
+   * the event list before it runs, so without this the table would only ever
+   * animate the bot's last action — its attack would land in silence and only
+   * the health number would move.
+   */
+  const events = [...state.events];
+
   for (let i = 0; i < cap; i++) {
     if (current.phase === 'gameOver') break;
     const seat = seatToAct(current);
@@ -334,9 +342,11 @@ export function runBots(
     const next = step(current, action);
     // A bot that cannot change the state would loop forever.
     if (next === current) break;
+    events.push(...next.events);
     current = next;
   }
-  return current;
+
+  return current === state ? current : { ...current, events };
 }
 
 /** Opponents a bot would consider, for tests and debugging. */

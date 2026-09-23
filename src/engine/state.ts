@@ -238,6 +238,8 @@ export type TableEvent =
   | { kind: 'card'; player: number; cardId: string }
   /** Seat `player` spent one of a token. */
   | { kind: 'spend'; player: number; statusId: string }
+  /** Dice were thrown. `dieIds` are the ones that actually moved. */
+  | { kind: 'roll'; player: number; dieIds: string[] }
   | { kind: 'damage'; player: number; amount: number; type: DamageType }
   | { kind: 'heal'; player: number; amount: number };
 

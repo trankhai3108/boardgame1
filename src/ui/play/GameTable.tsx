@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { HEROES } from '../../data/heroes';
 import type { Action } from '../../engine/actions';
-import { isWaitingOn } from '../../engine/authority';
+import { canAct, isWaitingOn } from '../../engine/authority';
 import { bestAbilities } from '../../engine/combos';
 import { resolveDamage } from '../../engine/damage';
 import { legalActions, passiveOptionsFor, type HeroLookup } from '../../engine/reducer';
@@ -21,7 +21,8 @@ import { SYMBOL_ICONS } from '../card/iconRegistry';
 import { renderMarkup } from '../card/markup';
 import { PendingPanel } from './PendingPanel';
 import { Seat } from './Seat';
-import { TableFx, useTableFx } from './TableFx';
+import { TableFx } from './TableFx';
+import { rolledDice, useTableFx } from './tableFx';
 import './play.css';
 import './table.css';
 
@@ -37,6 +38,94 @@ export interface GameTableProps {
   onAction: (action: Action) => void;
   /** Rendered next to the round counter. */
   toolbar?: React.ReactNode;
+}
+
+
+/** The actions that get a button on the table, as opposed to a card or a die. */
+const TRAY_ACTIONS = [
+  'rollDice',
+  'skipAttack',
+  'nextPhase',
+  'resolveAttack',
+  'payKnockdown',
+  'chooseDefense',
+  'rollTarget',
+  'chooseTarget',
+] as const;
+
+/**
+ * The buttons a given seat has to press, drawn next to that seat.
+ *
+ * Sitting at a table you reach for your own things; a single shared row of
+ * buttons in the middle gives no clue whose move it is. `canAct` already knows
+ * whose click each action is, so the bar is just that question asked per seat.
+ */
+function ActionBar({
+  game,
+  seat,
+  options,
+  onAction,
+}: {
+  game: GameState;
+  seat: number;
+  options: Action[];
+  onAction: (action: Action) => void;
+}) {
+  const { t } = useI18n();
+
+  const mine = options.filter(
+    (o) =>
+      (TRAY_ACTIONS as readonly string[]).includes(o.type) && canAct(game, seat, o),
+  );
+  if (mine.length === 0) return null;
+
+  const nameFor = (i: number) => game.players[i].name;
+
+  const label = (option: Action): string => {
+    switch (option.type) {
+      case 'rollDice':
+        return t('ui.action.roll');
+      case 'skipAttack':
+        return t('ui.action.noAttack');
+      case 'nextPhase':
+        return t('ui.action.nextPhase');
+      case 'resolveAttack':
+        return t('ui.action.resolve');
+      case 'payKnockdown':
+        return t('ui.action.payKnockdown');
+      case 'rollTarget':
+        return t('ui.action.rollTarget');
+      case 'chooseTarget':
+        return fill(t('ui.action.target'), { name: nameFor(option.target) });
+      case 'chooseDefense': {
+        if (option.abilityId === null) return t('ui.action.noDefend');
+        const hero = game.attack ? HEROES[game.players[game.attack.defender].heroId] : null;
+        const ability = hero?.abilities.find((a) => a.id === option.abilityId);
+        return fill(t('ui.action.defendWith'), {
+          ability: hero
+            ? t(K.abilityName(hero.id, option.abilityId), ability?.name ?? option.abilityId)
+            : option.abilityId,
+        });
+      }
+      default:
+        return option.type;
+    }
+  };
+
+  return (
+    <div className="seat__actions">
+      {mine.map((option, i) => (
+        <button
+          key={`${option.type}-${i}`}
+          type="button"
+          className="play__button"
+          onClick={() => onAction(option)}
+        >
+          {label(option)}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /** What each pip value means on the dice currently on the table. */
@@ -68,6 +157,9 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   /** Opponent across the table; null lets the game decide. */
   const [facing, setFacing] = useState<number | null>(null);
   const fx = useTableFx(game);
+  // The dice the action just applied actually threw, so a roll reads as a
+  // roll — including one made at the other end of the table.
+  const thrown = useMemo(() => rolledDice(game.events), [game]);
 
   const active = game.players[game.active];
   const activeHero = HEROES[active.heroId];
@@ -160,7 +252,7 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   const nameFor = (index: number) => game.players[index].name;
 
   return (
-    <div>
+    <div className="play-screen">
       {game.phase === 'gameOver' ? (
         <div className="winner-banner">
           {fill(t('ui.play.winner'), { name: winnerTeam?.name ?? '-' })}
@@ -206,7 +298,11 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           index={farSeat}
           you={you}
           side="far"
-          boardWidth={190}
+          actions={
+            controls(farSeat) ? (
+              <ActionBar game={game} seat={farSeat} options={options} onAction={onAction} />
+            ) : null
+          }
           hit={hitOn(farSeat)}
           spendable={spendableFor(farSeat)}
           onSpend={(statusId) =>
@@ -237,6 +333,7 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           </div>
         ) : null}
 
+        {/* Empty between rolls, and `:empty` in the stylesheet folds it away. */}
         <section className="tray">
 
           {targeting ? (
@@ -316,7 +413,9 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
                   <button
                     key={die.id}
                     type="button"
-                    className={`die${die.kept ? ' die--kept' : ''}`}
+                    className={`die${die.kept ? ' die--kept' : ''}${
+                      thrown.has(die.id) ? ' die--thrown' : ''
+                    }`}
                     disabled={!canToggle}
                     onClick={() => onAction({ type: 'toggleKeep', dieId: die.id })}
                     title={`${t(K.dieLabel(face.label), face.label)} (${die.value})`}
@@ -386,75 +485,6 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
             </div>
           ) : null}
 
-          <div className="tray__actions">
-            {options
-              .filter((o) =>
-                [
-                  'rollDice',
-                  'skipAttack',
-                  'nextPhase',
-                  'resolveAttack',
-                  'payKnockdown',
-                  'chooseDefense',
-                  'rollTarget',
-                  'chooseTarget',
-                ].includes(o.type),
-              )
-              .map((option, i) => {
-                if (option.type === 'chooseDefense' && !controls(attack?.defender ?? -1)) return null;
-                if (option.type === 'chooseTarget') {
-                  const chooser = targeting?.chooser;
-                  const allowed =
-                    chooser === 'attacker'
-                      ? controls(game.active)
-                      : (targeting?.opponents ?? []).some(controls);
-                  if (!allowed) return null;
-                } else if (option.type !== 'resolveAttack' && !myTurn) {
-                  return null;
-                }
-
-                const defenderHero = attack ? HEROES[game.players[attack.defender].heroId] : null;
-                const defenceName = () => {
-                  if (option.type !== 'chooseDefense' || !option.abilityId || !defenderHero)
-                    return '';
-                  const ability = defenderHero.abilities.find((a) => a.id === option.abilityId);
-                  return t(
-                    K.abilityName(defenderHero.id, option.abilityId),
-                    ability?.name ?? option.abilityId,
-                  );
-                };
-
-                const label =
-                  option.type === 'rollDice'
-                    ? t('ui.action.roll')
-                    : option.type === 'skipAttack'
-                      ? t('ui.action.noAttack')
-                      : option.type === 'nextPhase'
-                        ? t('ui.action.nextPhase')
-                        : option.type === 'resolveAttack'
-                          ? t('ui.action.resolve')
-                          : option.type === 'payKnockdown'
-                            ? t('ui.action.payKnockdown')
-                            : option.type === 'rollTarget'
-                              ? t('ui.action.rollTarget')
-                              : option.type === 'chooseTarget'
-                                ? fill(t('ui.action.target'), { name: nameFor(option.target) })
-                                : option.type === 'chooseDefense' && option.abilityId === null
-                                  ? t('ui.action.noDefend')
-                                  : fill(t('ui.action.defendWith'), { ability: defenceName() });
-
-                return (
-                  <button
-                    key={`${option.type}-${i}`}
-                    type="button"
-                    className="play__button"
-                    onClick={() => onAction(option)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-          </div>
         </section>
 
         <Seat
@@ -462,7 +492,11 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           index={nearSeat}
           you={you}
           side="near"
-          boardWidth={230}
+          actions={
+            controls(nearSeat) ? (
+              <ActionBar game={game} seat={nearSeat} options={options} onAction={onAction} />
+            ) : null
+          }
           hit={hitOn(nearSeat)}
           spendable={spendableFor(nearSeat)}
           onSpend={(statusId) =>
@@ -473,19 +507,23 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
 
       <Hand game={game} you={you} options={options} onAction={onAction} />
 
-      <h2 className="section-title">{t('ui.section.log')}</h2>
-      <div className="log">
-        {game.log
-          .slice(-80)
-          .map((entry, i) => (
-            <div key={i} className="log__entry">
-              <span className="log__phase">r{entry.round} </span>
-              {entry.player ? <span className="log__player">{entry.player} </span> : null}
-              {entry.message}
-            </div>
-          ))
-          .reverse()}
-      </div>
+      {/* The log is a record, not part of play, so it stays out of the way
+          until it is asked for rather than taking a screen of its own. */}
+      <details className="log-drawer">
+        <summary>{t('ui.section.log')}</summary>
+        <div className="log">
+          {game.log
+            .slice(-80)
+            .map((entry, i) => (
+              <div key={i} className="log__entry">
+                <span className="log__phase">r{entry.round} </span>
+                {entry.player ? <span className="log__player">{entry.player} </span> : null}
+                {entry.message}
+              </div>
+            ))
+            .reverse()}
+        </div>
+      </details>
     </div>
   );
 }
@@ -532,6 +570,9 @@ function Hand({
 
   return (
     <>
+      {/* One line: the toggle, whose hand it is, and — on a shared screen —
+          the seat to look at. Three stacked rows cost the boards their
+          height, and none of them needed a row to itself. */}
       <div className="hand__bar">
         <button
           type="button"
@@ -545,10 +586,9 @@ function Hand({
           {t('ui.play.hand')} · {player.name}
           <span className="hand__count">{player.hand.length}</span>
         </h2>
-      </div>
 
-      {shown && shared ? (
-        <div className="hand__seats">
+        {shown && shared ? (
+          <div className="hand__seats">
           {game.players.map((p, i) => (
             <button
               key={p.id}
@@ -562,17 +602,18 @@ function Hand({
               {armed.has(p.id) ? <span className="hand__dot" /> : null}
             </button>
           ))}
-          {seat !== null ? (
-            <button
-              type="button"
-              className="hand__seat"
-              onClick={() => setSeat(null)}
-            >
-              {t('ui.play.followTurn')}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+            {seat !== null ? (
+              <button
+                type="button"
+                className="hand__seat"
+                onClick={() => setSeat(null)}
+              >
+                {t('ui.play.followTurn')}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {!shown ? null : player.hand.length === 0 ? (
         <p className="app__subtitle">{t('ui.play.emptyHand')}</p>
@@ -601,7 +642,18 @@ function Hand({
                 key={instanceId}
                 className={`hand__card${canPlay ? ' hand__card--playable' : ''}`}
               >
-                <CardView card={card} width={190} />
+                {/* No width: the stylesheet sizes the hand off the room it has. */}
+                <CardView card={card} />
+                {/*
+                 * A readable copy, shown while the pointer is on the card.
+                 * It is fixed rather than a transform on the card itself: the
+                 * hand scrolls sideways, and a box that scrolls on one axis
+                 * clips the other, so an enlarged card in the row would be cut
+                 * off by the row it is trying to rise out of.
+                 */}
+                <div className="hand__preview" aria-hidden="true">
+                  <CardView card={card} />
+                </div>
                 <div className="hand__actions">
                   <button
                     type="button"

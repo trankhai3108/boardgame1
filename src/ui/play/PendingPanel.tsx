@@ -4,6 +4,7 @@ import type { Action } from '../../engine/actions';
 import { diceOnTable, type ChoiceAnswer } from '../../engine/effects';
 import type { GameState, PendingStep } from '../../engine/state';
 import { fill } from '../../i18n';
+import { rolledDice } from './tableFx';
 import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { STATUS_ICONS, SYMBOL_ICONS } from '../card/iconRegistry';
@@ -30,6 +31,8 @@ export function PendingPanel({
   onAction: (action: Action) => void;
 }) {
   const { t } = useI18n();
+  // The sub-roll dice tumble on the throw that moved them, same as the tray.
+  const thrown = rolledDice(game.events);
   const who = game.players[step.who];
   const hero = HEROES[who.heroId];
 
@@ -62,7 +65,9 @@ export function PendingPanel({
                   <button
                     key={die.id}
                     type="button"
-                    className={`die die--sub${die.kept ? ' die--kept' : ''}`}
+                    className={`die die--sub${die.kept ? ' die--kept' : ''}${
+                      thrown.has(die.id) ? ' die--thrown' : ''
+                    }`}
                     disabled={!canKeep}
                     onClick={() => onAction({ type: 'keepPending', dieId: die.id })}
                     title={`${t(K.dieLabel(face.label), face.label)} (${die.value})`}

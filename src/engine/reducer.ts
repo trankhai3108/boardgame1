@@ -1120,11 +1120,14 @@ function rollPending(state: GameState, lookup: HeroLookup, reroll: boolean): voi
     if (step.rolled) throw new Error('These dice have already been thrown');
     step.dice = makeDice(step.request.dice, state.rng).map((d, i) => ({ ...d, id: `p${i}` }));
     step.rolled = true;
+    state.events.push({ kind: 'roll', player: step.who, dieIds: step.dice.map((d) => d.id) });
   } else {
     if (!step.rolled) throw new Error('Throw the dice before re-rolling them');
     if (step.rerolls <= 0) throw new Error('No re-rolls left');
     step.rerolls -= 1;
+    const moved = step.dice.filter((d) => !d.kept).map((d) => d.id);
     step.dice = rerollUnkept(step.dice, state.rng);
+    state.events.push({ kind: 'roll', player: step.who, dieIds: moved });
   }
 
   void lookup;
@@ -1293,7 +1296,9 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
       if (!roll || roll.kind !== 'offensive') throw new Error('Not in an Offensive Roll Phase');
       if (roll.attemptsUsed >= roll.maxAttempts) throw new Error('No Roll Attempts left');
       roll.attemptsUsed += 1;
+      const moved = roll.dice.filter((d) => !d.kept).map((d) => d.id);
       roll.dice = rerollUnkept(roll.dice, next.rng);
+      next.events.push({ kind: 'roll', player: roll.playerIndex, dieIds: moved });
       applyBarbedVine(next, lookup, player, roll.attemptsUsed);
       log(next, `rolls ${describeDice(next, lookup, player)}`, player);
       break;

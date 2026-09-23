@@ -9,7 +9,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { AbilityCard } from '../board/HeroBoard';
 import { STATUS_ICONS } from '../card/iconRegistry';
-import { useHitShake } from './TableFx';
+import { useHitShake } from './tableFx';
 
 /**
  * One player's side of the table: vitals down the left, the hero board in the
@@ -43,8 +43,8 @@ export function Seat({
   side,
   spendable,
   onSpend,
-  boardWidth,
   hit,
+  actions,
 }: {
   game: GameState;
   index: number;
@@ -54,10 +54,10 @@ export function Seat({
   side: 'near' | 'far';
   spendable: Set<string>;
   onSpend: (statusId: string) => void;
-  /** Width of one ability card; the far side is drawn smaller. */
-  boardWidth: number;
   /** Damage this seat just took, which the board flinches from. */
   hit: number | null;
+  /** The buttons this player has to press, drawn under their own board. */
+  actions?: React.ReactNode;
 }) {
   const player = game.players[index];
   const hero = HEROES[player.heroId];
@@ -91,7 +91,10 @@ export function Seat({
       data-seat={index}
     >
       <Vitals game={game} index={index} you={you} />
-      <HeroBoard hero={hero} game={game} index={index} live={live} width={boardWidth} />
+      <div className="seat__middle">
+        <HeroBoard hero={hero} game={game} index={index} live={live} />
+        {actions}
+      </div>
       <TokenRail game={game} index={index} spendable={spendable} onSpend={onSpend} />
     </section>
   );
@@ -125,13 +128,15 @@ function Vitals({ game, index, you }: { game: GameState; index: number; you: num
         </div>
       </div>
 
-      <div className="vitals__dial">
-        <b>{player.cp}</b>
-        <span>{t('ui.play.cp')}</span>
-      </div>
-      <div className="vitals__dial">
-        <b>{player.hand.length}</b>
-        <span>{t('ui.play.cards')}</span>
+      <div className="vitals__dials">
+        <div className="vitals__dial">
+          <b>{player.cp}</b>
+          <span>{t('ui.play.cp')}</span>
+        </div>
+        <div className="vitals__dial">
+          <b>{player.hand.length}</b>
+          <span>{t('ui.play.cards')}</span>
+        </div>
       </div>
     </div>
   );
@@ -146,13 +151,11 @@ function HeroBoard({
   game,
   index,
   live,
-  width,
 }: {
   hero: Hero;
   game: GameState;
   index: number;
   live: Set<string>;
-  width: number;
 }) {
   const { t } = useI18n();
   const player = game.players[index];
@@ -169,13 +172,9 @@ function HeroBoard({
       className={`board__slot${isLive(ability) ? ' board__slot--live' : ''}`}
       data-ability={ability.id}
     >
-      {/* The Ultimate prints as a wide strip, so it keeps its own proportions
-          rather than being squeezed into an ability slot's width. */}
-      <AbilityCard
-        ability={ability}
-        heroId={hero.id}
-        width={ability.ultimate ? Math.round(width * 2.1) : width}
-      />
+      {/* No width is passed: the stylesheet sizes every slot from the height
+          the table has to spare, so the board fits the screen it is on. */}
+      <AbilityCard ability={ability} heroId={hero.id} />
       <span className="board__level">{player.abilityLevels[ability.id] ?? ability.level}</span>
       {isLive(ability) ? <span className="board__ready">{t('ui.play.ready')}</span> : null}
     </div>
@@ -250,8 +249,11 @@ function TokenRail({
               .join(' ')}
             disabled={!canSpend}
             onClick={() => onSpend(statusId)}
-            title={t(K.statusText(statusId), def?.text ?? summary)}
             data-token={statusId}
+            data-tip={`${t(K.statusName(statusId), def?.name ?? statusId)} — ${t(
+              K.statusText(statusId),
+              def?.text ?? summary,
+            )}`}
           >
             {Icon ? <Icon /> : null}
             <span className="rail__token-name">
