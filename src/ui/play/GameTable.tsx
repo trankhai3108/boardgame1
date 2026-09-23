@@ -302,17 +302,28 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           ) : null}
 
           {attack && preview ? (
-            <div className="attack-summary">
+            <div className={`attack-summary${attack.window ? ' attack-summary--window' : ''}`}>
               <div>
-                {fill(t('ui.play.attackLine'), {
-                  attacker: nameFor(attack.attacker),
-                  ability: t(
-                    K.abilityName(game.players[attack.attacker].heroId, attack.abilityId),
-                    attack.abilityName,
-                  ),
-                })}
-                {' → '}
-                <b>{nameFor(attack.defender)}</b>
+                {attack.window ? (
+                  /* Not an attack: damage from a token or a defence, waiting
+                     for the player taking it to answer. */
+                  fill(t('ui.play.incomingLine'), {
+                    source: attack.abilityName,
+                    name: nameFor(attack.defender),
+                  })
+                ) : (
+                  <>
+                    {fill(t('ui.play.attackLine'), {
+                      attacker: nameFor(attack.attacker),
+                      ability: t(
+                        K.abilityName(game.players[attack.attacker].heroId, attack.abilityId),
+                        attack.abilityName,
+                      ),
+                    })}
+                    {' → '}
+                    <b>{nameFor(attack.defender)}</b>
+                  </>
+                )}
               </div>
               <div className="attack-summary__amount">
                 {fill(t('ui.play.dmg'), { n: preview.final })}

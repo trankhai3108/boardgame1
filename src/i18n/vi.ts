@@ -105,6 +105,7 @@ export const VI: Dict = {
   'ui.phase.offensiveRoll': 'Pha Tung Tấn Công',
   'ui.phase.upkeep': 'Pha Duy Trì',
   'ui.play.attackLine': '{attacker} tấn công bằng {ability}',
+  'ui.play.incomingLine': '{source}: sát thương đang chờ {name} trả lời',
   'ui.play.bot': 'Máy',
   'ui.play.human': 'Người',
   'ui.play.seat': 'Ghế',

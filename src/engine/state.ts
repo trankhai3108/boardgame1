@@ -157,6 +157,17 @@ export interface PendingAttack {
   afterDamage: Effect[];
   /** True once the defender has rolled (or declined) their Defensive Ability. */
   defenseResolved: boolean;
+  /**
+   * True when this is not an attack at all, but a pause to let the target
+   * answer damage from outside one — Burn in Upkeep, a Defensive Ability
+   * hitting back. Settling it does not end anybody's Roll Phase.
+   */
+  window?: boolean;
+  /**
+   * Set on an end-of-turn window: the turn cannot pass until its holder has
+   * answered the damage, so settling the window is what finishes the turn.
+   */
+  resumeEndTurn?: boolean;
 }
 
 /* ------------------------------------------------------------------ */

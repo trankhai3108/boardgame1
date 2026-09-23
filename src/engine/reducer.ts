@@ -71,10 +71,12 @@ function runUpkeep(state: GameState, lookup: HeroLookup): void {
     if (upkeep.removeTokens) removeStatus(player, statusId, upkeep.removeTokens);
   }
 
-  // Upkeep damage accumulates and is applied simultaneously at the end of the phase.
-  if (damage > 0) applyDamage(state, lookup, state.active, damage);
-
   runUpkeepPassives(state, lookup);
+
+  // Upkeep damage accumulates and is applied simultaneously at the end of the
+  // phase — after the passives, and only once the holder has had their say.
+  if (damage > 0) openDamageWindow(state, state.active, damage, 'Upkeep');
+  void lookup;
 }
 
 /** Passive abilities that do something every Upkeep Phase, e.g. Fertilize. */
@@ -231,12 +233,53 @@ function applyBarbedVine(
 
   player.barbedVineDamageThisTurn += amount;
   log(state, `Barbed Vine: ${amount} dmg for an extra Roll Attempt`, player);
-  applyDamage(state, lookup, state.players.indexOf(player), amount);
+  openDamageWindow(state, state.players.indexOf(player), amount, 'Barbed Vine');
+  void lookup;
 }
 
 /* ------------------------------------------------------------------ */
 /* Damage application                                                   */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Pauses for the target to answer damage that came from outside an Attack.
+ *
+ * Typeless damage is avoidable, so Burn, Poison and a Defensive Ability's
+ * return damage all have to stop and give their target the same chance to
+ * spend a token or play an Instant that an attack does. It is not an attack
+ * and never ends a Roll Phase, so it rides on `state.attack` with `window`
+ * set rather than moving anybody into a Defensive Roll Phase.
+ */
+function openDamageWindow(
+  state: GameState,
+  target: number,
+  amount: number,
+  source: string,
+  from = target,
+): void {
+  if (amount <= 0 || state.phase === 'gameOver') return;
+
+  // A window already open takes the new damage with it, so two Burn-like
+  // sources in one phase are one decision rather than two.
+  if (state.attack?.window && state.attack.defender === target) {
+    state.attack.incoming += amount;
+    return;
+  }
+
+  state.attack = {
+    attacker: from,
+    defender: target,
+    abilityId: '',
+    abilityName: source,
+    incoming: amount,
+    type: 'typeless',
+    modifiers: [],
+    afterDamage: [],
+    // There is no Defensive Ability against it, so there is nothing to roll.
+    defenseResolved: true,
+    window: true,
+  };
+}
 
 /**
  * Reduces the target's Health Dial — which their whole team shares — honouring
@@ -688,6 +731,9 @@ function spendStatus(state: GameState, lookup: HeroLookup, playerId: string, sta
 
   const attack = state.attack;
   if (!attack) throw new Error('Status tokens are spent against a pending attack');
+  if (attack.window && index !== attack.defender) {
+    throw new Error('Only the player taking the damage may answer it');
+  }
   const isDefender = index === attack.defender;
   const isAttacker = index === attack.attacker;
 
@@ -825,11 +871,11 @@ function resolveAttack(state: GameState, lookup: HeroLookup): void {
   result.steps.forEach((step) => log(state, step));
 
   applyDamage(state, lookup, attack.defender, result.final);
-  if (result.reflected > 0) applyDamage(state, lookup, attack.attacker, result.reflected);
 
   // Stun gives the player who inflicted it another Offensive Roll Phase.
   const defender = state.players[attack.defender];
   if (
+    !attack.window &&
     behaviourOf('stun').grantsExtraOrpToInflicter &&
     statusCount(defender, 'stun') > 0 &&
     state.phase !== 'gameOver'
@@ -842,12 +888,32 @@ function resolveAttack(state: GameState, lookup: HeroLookup): void {
   state.attack = null;
   if (state.phase === 'gameOver') return;
 
+  // A window was a pause, not an attack: the turn picks up where it was, or
+  // finishes if the window was what was holding it open.
+  if (attack.window) {
+    if (attack.resumeEndTurn) finishEndTurn(state, lookup);
+    return;
+  }
+
   if (state.extraOrp > 0) {
     state.extraOrp -= 1;
     state.phase = 'offensiveRoll';
     startOffensiveRoll(state, lookup);
   } else {
     endOffensivePhase(state);
+  }
+
+  /*
+   * Damage sent back by a Defensive Ability or by Retribution comes from
+   * outside an Attack, so it is typeless and its target may answer it too.
+   *
+   * Opened last, after this attack is cleared away and the Roll Phase has
+   * ended: the window does not depend on the phase, so ending the phase first
+   * means settling it cannot leave the attacker's turn stuck in a Defensive
+   * Roll Phase that is already over.
+   */
+  if (result.reflected > 0) {
+    openDamageWindow(state, attack.attacker, result.reflected, attack.abilityName);
   }
 }
 
@@ -868,9 +934,19 @@ function endTurn(state: GameState, lookup: HeroLookup): void {
   }
   if (damage > 0) {
     log(state, `takes ${damage} dmg at the end of their turn`, player);
-    applyDamage(state, lookup, state.active, damage);
+    // The turn does not pass until its holder has had the chance to answer.
+    openDamageWindow(state, state.active, damage, 'End of turn');
+    if (state.attack) state.attack.resumeEndTurn = true;
+    return;
   }
+
+  finishEndTurn(state, lookup);
+}
+
+/** Everything a turn does once its end-of-turn damage has been settled. */
+function finishEndTurn(state: GameState, lookup: HeroLookup): void {
   if (state.phase === 'gameOver') return;
+  const player = state.players[state.active];
 
   player.gainedThisTurn = [];
   player.barbedVineDamageThisTurn = 0;
@@ -1509,6 +1585,23 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
       }
     }
     out.push(...cardActions(state, lookup));
+    return out;
+  }
+
+  // Damage from outside an attack is waiting on its target. Nothing else may
+  // happen until they have taken it or answered it.
+  const window = state.attack?.window ? state.attack : null;
+  if (window) {
+    const target = state.players[window.defender];
+    for (const statusId of Object.keys(target.statuses)) {
+      if (statusCount(target, statusId) === 0) continue;
+      const behaviour = behaviourOf(statusId);
+      if (behaviour.spendToPrevent || behaviour.spendToAvoid || behaviour.autoAvoid) {
+        out.push({ type: 'spendStatus', playerId: target.id, statusId });
+      }
+    }
+    out.push(...cardActions(state, lookup));
+    out.push({ type: 'resolveAttack' });
     return out;
   }
 

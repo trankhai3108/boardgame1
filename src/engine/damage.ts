@@ -15,7 +15,19 @@
  * is the worked example in the rulebook.
  */
 
-export type DamageType = 'normal' | 'undefendable' | 'pure' | 'collateral' | 'ultimate';
+export type DamageType =
+  | 'normal'
+  | 'undefendable'
+  | 'pure'
+  | 'collateral'
+  | 'ultimate'
+  /**
+   * Damage from outside an Attack: a status effect in Upkeep, a Defensive
+   * Ability hitting back. The rules call this typeless rather than a sixth
+   * damage type, but it behaves as one: "That damage can be avoided, but is
+   * not modifiable or defendable."
+   */
+  | 'typeless';
 
 interface TypeAttributes {
   /** The defender may activate their Defensive Ability against it. */
@@ -33,6 +45,7 @@ export const DAMAGE_TYPES: Record<DamageType, TypeAttributes> = {
   collateral: { defendable: false, avoidable: true, modifiable: false },
   // Ultimate damage is modifiable, but may only ever be increased.
   ultimate: { defendable: false, avoidable: false, modifiable: true },
+  typeless: { defendable: false, avoidable: true, modifiable: false },
 };
 
 export type DamageModifier =

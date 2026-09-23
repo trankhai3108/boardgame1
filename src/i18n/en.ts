@@ -48,6 +48,7 @@ export const EN: Dict = {
   'ui.play.showHand': 'Show hand',
   'ui.play.rollCount': 'roll {used} / {max}',
   'ui.play.attackLine': '{attacker} attacks with {ability}',
+  'ui.play.incomingLine': '{source}: damage waiting on {name}',
   'ui.play.dmg': '{n} dmg',
   'ui.play.reflected': '{n} reflected',
   'ui.play.incoming': '{n} incoming ({type})',

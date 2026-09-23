@@ -163,6 +163,18 @@ export function chooseBotAction(
     }
   }
 
+  /* --- damage from outside an attack, waiting on its target --- */
+  if (state.attack?.window) {
+    // Worth a token only when it would stop a real dent.
+    if (state.attack.defender === playerIndex && state.attack.incoming >= 3) {
+      const guard = options.find(
+        (a) => a.type === 'spendStatus' && a.playerId === state.players[playerIndex].id,
+      );
+      if (guard) return guard;
+    }
+    return pick('resolveAttack') ?? null;
+  }
+
   /* --- defending, and spending tokens while damage is pending --- */
   if (state.phase === 'defensiveRoll' && state.attack) {
     const attack = state.attack;
@@ -298,6 +310,8 @@ export function seatToAct(state: GameState): number {
   // A parked roll or choice belongs to one seat and blocks everyone else.
   const step = topPending(state);
   if (step) return step.who;
+  // So does damage from outside an attack: it waits on whoever is taking it.
+  if (state.attack?.window) return state.attack.defender;
   if (state.targeting?.chooser === 'defenders') return state.targeting.opponents[0];
   if (state.phase === 'defensiveRoll' && state.attack) {
     return state.attack.defenseResolved ? state.active : state.attack.defender;

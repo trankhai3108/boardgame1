@@ -1039,3 +1039,7 @@
 @media (prefers-reduced-motion: reduce) {
   .zoom { transition: none; }
 }
+
+/* Damage from outside an attack: the same panel, in a calmer colour, because
+   nobody is attacking anybody. */
+.attack-summary--window { border-color: #2c4254; background: #101b23; }

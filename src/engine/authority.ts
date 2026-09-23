@@ -50,6 +50,8 @@ export function canAct(state: GameState, playerIndex: number, action: Action): b
     // Resolving the accumulated damage just advances the game; either side of
     // the attack may do it once both are done acting.
     case 'resolveAttack':
+      // Damage from outside an attack is the target's alone to settle.
+      if (state.attack?.window) return state.attack.defender === playerIndex;
       return playerIndex === state.active || state.attack?.defender === playerIndex;
 
     default:

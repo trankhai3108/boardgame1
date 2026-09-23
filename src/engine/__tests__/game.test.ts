@@ -111,6 +111,12 @@ describe('income and upkeep', () => {
     game = next(game);
     expect(game.active).toBe(1);
     expect(game.phase).toBe('upkeep');
+
+    // Typeless damage is avoidable, so it waits for its target to answer.
+    expect(game.attack?.window).toBe(true);
+    expect(healthOf(game, 1)).toBe(RULES.startingHealth);
+
+    game = act(game, { type: 'resolveAttack' });
     expect(healthOf(game, 1)).toBe(RULES.startingHealth - 2);
     // Burn is persistent, so it stays.
     expect(game.players[1].statuses.burn).toBe(1);
@@ -235,8 +241,17 @@ describe('status effects in play', () => {
     game.players[0].statuses['delayed-poison'] = 2;
     game.phase = 'discard';
     game = next(game);
+
+    // Typeless damage is avoidable, so the turn waits for its holder to
+    // answer before it passes.
+    expect(game.attack?.window).toBe(true);
+    expect(game.active).toBe(0);
+
+    game = act(game, { type: 'resolveAttack' });
     expect(healthOf(game, 0)).toBe(RULES.startingHealth - 6);
     expect(game.players[0].statuses['delayed-poison']).toBeUndefined();
+    // And the turn has passed.
+    expect(game.active).toBe(1);
   });
 });
 
