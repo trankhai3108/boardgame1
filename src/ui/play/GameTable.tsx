@@ -155,6 +155,8 @@ function PlayerPanel({
 export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   const { t } = useI18n();
   const options = useMemo(() => legalActions(game, lookup), [game]);
+  /** Board on show below the table; null follows the default seat. */
+  const [peekSeat, setPeekSeat] = useState<number | null>(null);
 
   const active = game.players[game.active];
   const activeHero = HEROES[active.heroId];
@@ -190,8 +192,10 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
         : active;
 
   // The board below the table is yours online, and follows whoever is acting
-  // on a shared screen so the right hero is always face up.
-  const boardSeat = you >= 0 ? you : game.players.indexOf(actingPlayer);
+  // on a shared screen so the right hero is always face up — until the reader
+  // asks to look at someone else's.
+  const defaultSeat = you >= 0 ? you : game.players.indexOf(actingPlayer);
+  const boardSeat = peekSeat ?? defaultSeat;
 
   const winnerTeam = game.teams.find((team) => team.id === game.winner);
 
@@ -479,6 +483,9 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
         <HeroPanel
           game={game}
           index={boardSeat}
+          yourSeat={you}
+          pinned={peekSeat !== null && peekSeat !== defaultSeat}
+          onSelectSeat={setPeekSeat}
           spendable={spendableFor(boardSeat)}
           onSpend={(statusId) =>
             onAction({

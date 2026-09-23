@@ -123,6 +123,8 @@ export const EN: Dict = {
   'ui.play.tokenBoard': 'Status tokens',
   'ui.action.spendToken': 'spend',
   'ui.play.followTurn': 'Follow the turn',
+  'ui.play.backToMine': 'Back to my board',
+  'ui.play.viewingOther': 'Another player’s board — nothing here is yours to spend.',
 
   /* --- a roll or a decision the table is waiting on --- */
   'ui.play.yourStep': 'your move',

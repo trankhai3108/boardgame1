@@ -109,6 +109,18 @@ describe('the play table renders', () => {
     expect(html).not.toContain('hand__seats');
   });
 
+  it('shows your own board by default, with a button for every other seat', () => {
+    const html = table(newGame(), 1); // you are seat 1, the Treant
+    expect(html).toContain('board-seats');
+    // Both seats are reachable, and the one on show is your own. The pattern
+    // pins the closing quote so it does not also catch board-seat__avatar.
+    expect(html.match(/class="board-seat(?: board-seat--on)?"/g)?.length).toBe(2);
+    expect(html).toContain('board-seat--on');
+    expect(html).toContain('Treant');
+    // Your own board is not somebody else's, so no peek warning.
+    expect(html).not.toContain('hero-panel__peek');
+  });
+
   it('survives the end of the game', () => {
     const game = newGame();
     game.teams[1].health = 0;

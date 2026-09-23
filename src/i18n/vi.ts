@@ -74,6 +74,8 @@ export const VI: Dict = {
   'ui.play.tokenBoard': 'Bảng token trạng thái',
   'ui.action.spendToken': 'dùng',
   'ui.play.followTurn': 'Theo lượt hiện tại',
+  'ui.play.backToMine': 'Về bảng của tôi',
+  'ui.play.viewingOther': 'Bảng của người chơi khác — token ở đây không phải của bạn.',
 
   /* --- a roll or a decision the table is waiting on --- */
   'ui.play.yourStep': 'đến lượt bạn',

@@ -22,12 +22,21 @@ import { SYMBOL_ICONS, STATUS_ICONS } from '../card/iconRegistry';
 export function HeroPanel({
   game,
   index,
+  yourSeat,
+  pinned,
+  onSelectSeat,
   onSpend,
   spendable,
 }: {
   game: GameState;
-  /** Seat whose board this is. */
+  /** Seat whose board is on show. */
   index: number;
+  /** The seat this screen belongs to, or -1 on a shared screen. */
+  yourSeat: number;
+  /** True when the reader picked the seat rather than it following the turn. */
+  pinned: boolean;
+  /** Passing null goes back to the default seat. */
+  onSelectSeat: (seat: number | null) => void;
   onSpend: (statusId: string) => void;
   spendable: Set<string>;
 }) {
@@ -35,6 +44,7 @@ export function HeroPanel({
   const [open, setOpen] = useState(true);
   const player = game.players[index];
   const hero = HEROES[player.heroId];
+  const mine = index === yourSeat;
 
   // Highlight whatever the dice on the table would activate, but only for the
   // seat actually holding them.
@@ -72,7 +82,10 @@ export function HeroPanel({
         ) : null}
         <div className="hero-panel__title">
           <h2 className="hero-panel__name">{t(K.hero(hero.id, 'name'), hero.name)}</h2>
-          <span className="app__subtitle">{player.name}</span>
+          <span className="app__subtitle">
+            {player.name}
+            {mine ? ` · ${t('ui.play.you')}` : ''}
+          </span>
         </div>
         <DiceKey heroId={hero.id} />
         <button
@@ -83,6 +96,38 @@ export function HeroPanel({
           {t(open ? 'ui.play.hideBoard' : 'ui.play.showBoard')}
         </button>
       </header>
+
+      {/* One button per seat: your own board is the default, and any other is
+          a click away — their abilities and tokens are public information. */}
+      <div className="board-seats">
+        {game.players.map((p, i) => {
+          const theirs = HEROES[p.heroId];
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className={`board-seat${i === index ? ' board-seat--on' : ''}`}
+              onClick={() => onSelectSeat(i)}
+            >
+              {theirs.portrait ? (
+                <img className="board-seat__avatar" src={theirs.portrait} alt="" />
+              ) : null}
+              <span className="board-seat__names">
+                <b>{p.name}</b>
+                <span>{t(K.hero(theirs.id, 'name'), theirs.name)}</span>
+              </span>
+              {i === yourSeat ? <span className="board-seat__tag">{t('ui.play.you')}</span> : null}
+            </button>
+          );
+        })}
+        {pinned ? (
+          <button type="button" className="board-seat" onClick={() => onSelectSeat(null)}>
+            {t(yourSeat >= 0 ? 'ui.play.backToMine' : 'ui.play.followTurn')}
+          </button>
+        ) : null}
+      </div>
+
+      {!mine ? <p className="hero-panel__peek">{t('ui.play.viewingOther')}</p> : null}
 
       {open ? (
         <>

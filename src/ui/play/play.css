@@ -707,3 +707,61 @@
 .hand__dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: #4fd1c5; }
 
 .hand__card--playable { outline: 2px solid #4fd1c5; outline-offset: 2px; border-radius: 0.5rem; }
+
+/* --- switching which hero board is on show --- */
+
+.board-seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.board-seat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #0e161d;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.board-seat:hover { background: #142029; }
+.board-seat--on { border-color: #4d7ba7; background: #16242f; color: var(--ink); }
+
+.board-seat__avatar {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.board-seat__names { display: grid; line-height: 1.15; text-align: left; }
+.board-seat__names span { font-size: 0.72rem; color: var(--muted); }
+
+.board-seat__tag {
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #2c4761;
+  color: #cfe3f5;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Reading someone else's board: nothing here is yours to spend. */
+.hero-panel__peek {
+  margin: 0.7rem 0 0;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px dashed #8a7b4b;
+  background: #1a1710;
+  color: #e8c877;
+  font-size: 0.85rem;
+}
