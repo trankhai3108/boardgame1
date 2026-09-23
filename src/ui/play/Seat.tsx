@@ -45,6 +45,7 @@ export function Seat({
   onSpend,
   hit,
   actions,
+  stage,
 }: {
   game: GameState;
   index: number;
@@ -58,6 +59,8 @@ export function Seat({
   hit: number | null;
   /** The buttons this player has to press, drawn under their own board. */
   actions?: React.ReactNode;
+  /** Their dice and the attack being worked out, drawn beside their board. */
+  stage?: React.ReactNode;
 }) {
   const player = game.players[index];
   const hero = HEROES[player.heroId];
@@ -97,6 +100,7 @@ export function Seat({
         <div className="seat__board">
           <HeroBoard hero={hero} game={game} index={index} live={live} />
         </div>
+        {stage}
         {actions}
       </div>
       <TokenRail game={game} index={index} spendable={spendable} onSpend={onSpend} />
@@ -176,9 +180,14 @@ function HeroBoard({
       className={`board__slot${isLive(ability) ? ' board__slot--live' : ''}`}
       data-ability={ability.id}
     >
-      {/* No width is passed: the stylesheet sizes every slot from the height
+      {/* No width is passed: the stylesheet sizes every slot from the room
           the table has to spare, so the board fits the screen it is on. */}
       <AbilityCard ability={ability} heroId={hero.id} />
+      {/* A readable copy while the pointer is on it. Fixed, so the board's
+          own scrolling cannot clip it. */}
+      <div className="zoom" aria-hidden="true">
+        <AbilityCard ability={ability} heroId={hero.id} />
+      </div>
       <span className="board__level">{player.abilityLevels[ability.id] ?? ability.level}</span>
       {isLive(ability) ? <span className="board__ready">{t('ui.play.ready')}</span> : null}
     </div>
@@ -254,16 +263,22 @@ function TokenRail({
             disabled={!canSpend}
             onClick={() => onSpend(statusId)}
             data-token={statusId}
-            data-tip={`${t(K.statusName(statusId), def?.name ?? statusId)} — ${t(
-              K.statusText(statusId),
-              def?.text ?? summary,
-            )}`}
           >
             {Icon ? <Icon /> : null}
             <span className="rail__token-name">
               {t(K.statusName(statusId), def?.name ?? statusId)}
             </span>
             <span className="rail__token-count">{count}</span>
+            <span className="zoom zoom--token" aria-hidden="true">
+              <span className="zoom__head">
+                {Icon ? <Icon /> : null}
+                <b>{t(K.statusName(statusId), def?.name ?? statusId)}</b>
+                {count > 0 ? <em>×{count}</em> : null}
+              </span>
+              <span className="zoom__text">
+                {t(K.statusText(statusId), def?.text ?? summary)}
+              </span>
+            </span>
           </button>
         );
       })}

@@ -247,94 +247,24 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
     return total > 0 ? total : null;
   };
 
+  // The dice belong to whoever threw them; everything else belongs to
+  // whoever has to act on it.
+  const stageOwner = game.roll ? game.roll.playerIndex : game.players.indexOf(actingPlayer);
+
   const winnerTeam = game.teams.find((team) => team.id === game.winner);
 
   const nameFor = (index: number) => game.players[index].name;
 
-  return (
-    <div className="play-screen">
-      {game.phase === 'gameOver' ? (
-        <div className="winner-banner">
-          {fill(t('ui.play.winner'), { name: winnerTeam?.name ?? '-' })}
-        </div>
-      ) : null}
-
-      {/* The phase is the one thing you always need to know and the one thing
-          a screen cannot show the way a board does, so it sits across the top
-          of the table rather than inside a panel. */}
-      <header className="table__phase">
-        <div className="table__phase-side">{toolbar}</div>
-
-        <div className="table__phase-main">
-          <span className="table__phase-name">{t(`ui.phase.${game.phase}`)}</span>
-          <span className="table__phase-sub">
-            {fill(t('ui.play.round'), { n: game.round })} · {t(`ui.mode.${game.mode}`)}
-            {game.roll
-              ? ` · ${fill(t('ui.play.rollCount'), {
-                  used: game.roll.attemptsUsed,
-                  max: game.roll.maxAttempts,
-                })}`
-              : ''}
-          </span>
-          {myTurn ? (
-            <span className="table__phase-turn">{t('ui.play.yourStep')}</span>
-          ) : (
-            <span className="turn-hint">
-              {fill(t('ui.play.waitingOn'), { name: actingPlayer.name })}
-            </span>
-          )}
-        </div>
-
-        <div className="table__phase-side table__phase-side--end">
-          <DiceKey heroId={game.players[game.roll?.playerIndex ?? game.active].heroId} />
-        </div>
-      </header>
-
-      <div className="table">
-        <TableFx game={game} fx={fx} seatSide={seatSide} />
-
-        <Seat
-          game={game}
-          index={farSeat}
-          you={you}
-          side="far"
-          actions={
-            controls(farSeat) ? (
-              <ActionBar game={game} seat={farSeat} options={options} onAction={onAction} />
-            ) : null
-          }
-          hit={hitOn(farSeat)}
-          spendable={spendableFor(farSeat)}
-          onSpend={(statusId) =>
-            onAction({ type: 'spendStatus', playerId: game.players[farSeat].id, statusId })
-          }
-        />
-
-        {others.length > 0 ? (
-          <div className="table__others">
-            {others.map((i) => {
-              const theirs = HEROES[game.players[i].heroId];
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  className={`table__other${game.active === i ? ' table__other--active' : ''}`}
-                  onClick={() => setFacing(i)}
-                  title={t('ui.play.faceSeat')}
-                >
-                  {theirs.portrait ? (
-                    <img className="table__other-avatar" src={theirs.portrait} alt="" />
-                  ) : null}
-                  <span className="table__other-name">{game.players[i].name}</span>
-                  <span className="table__other-hp">{healthOf(game, i)}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {/* Empty between rolls, and `:empty` in the stylesheet folds it away. */}
-        <section className="tray">
+  /*
+   * The dice, the attack being worked out and the combos they activate.
+   *
+   * This used to be a band between the two players, which is not where any of
+   * it belongs: the dice are in front of whoever threw them. It is drawn
+   * inside the seat of whoever the game is waiting on, and only falls back to
+   * the middle when that seat is not one of the two on the table.
+   */
+  const stage = (
+    <div className="stage">
 
           {targeting ? (
             <div className="attack-summary attack-summary--targeting">
@@ -485,12 +415,108 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
             </div>
           ) : null}
 
-        </section>
+    </div>
+  );
+
+  const stageSeat = seatSide(stageOwner) ? stageOwner : null;
+
+  return (
+    <div className="play-screen">
+      {game.phase === 'gameOver' ? (
+        <div className="winner-banner">
+          {fill(t('ui.play.winner'), { name: winnerTeam?.name ?? '-' })}
+        </div>
+      ) : null}
+
+      {/* The phase is the one thing you always need to know and the one thing
+          a screen cannot show the way a board does, so it sits across the top
+          of the table rather than inside a panel. */}
+      <header className="table__phase">
+        <div className="table__phase-side">{toolbar}</div>
+
+        <div className="table__phase-main">
+          <span className="table__phase-name">{t(`ui.phase.${game.phase}`)}</span>
+          <span className="table__phase-sub">
+            {fill(t('ui.play.round'), { n: game.round })} · {t(`ui.mode.${game.mode}`)}
+            {game.roll
+              ? ` · ${fill(t('ui.play.rollCount'), {
+                  used: game.roll.attemptsUsed,
+                  max: game.roll.maxAttempts,
+                })}`
+              : ''}
+          </span>
+          {myTurn ? (
+            <span className="table__phase-turn">{t('ui.play.yourStep')}</span>
+          ) : (
+            <span className="turn-hint">
+              {fill(t('ui.play.waitingOn'), { name: actingPlayer.name })}
+            </span>
+          )}
+        </div>
+
+        <div className="table__phase-side table__phase-side--end">
+          <DiceKey heroId={game.players[game.roll?.playerIndex ?? game.active].heroId} />
+        </div>
+      </header>
+
+      <div className="table">
+        <TableFx game={game} fx={fx} seatSide={seatSide} />
+
+        <Seat
+          game={game}
+          index={farSeat}
+          you={you}
+          stage={stageSeat === farSeat ? stage : null}
+          side="far"
+          actions={
+            controls(farSeat) ? (
+              <ActionBar game={game} seat={farSeat} options={options} onAction={onAction} />
+            ) : null
+          }
+          hit={hitOn(farSeat)}
+          spendable={spendableFor(farSeat)}
+          onSpend={(statusId) =>
+            onAction({ type: 'spendStatus', playerId: game.players[farSeat].id, statusId })
+          }
+        />
+
+        {/*
+          * Always rendered, even when a seat has the stage: the table is a
+          * grid of three rows, and an element that is not there gives up its
+          * row, which lets the lower seat slide into it and stop sharing the
+          * height evenly with the upper one. Empty, it collapses to nothing.
+          */}
+        <section className="tray">{stageSeat === null ? stage : null}</section>
+
+        {others.length > 0 ? (
+          <div className="table__others">
+            {others.map((i) => {
+              const theirs = HEROES[game.players[i].heroId];
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={`table__other${game.active === i ? ' table__other--active' : ''}`}
+                  onClick={() => setFacing(i)}
+                  title={t('ui.play.faceSeat')}
+                >
+                  {theirs.portrait ? (
+                    <img className="table__other-avatar" src={theirs.portrait} alt="" />
+                  ) : null}
+                  <span className="table__other-name">{game.players[i].name}</span>
+                  <span className="table__other-hp">{healthOf(game, i)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
 
         <Seat
           game={game}
           index={nearSeat}
           you={you}
+          stage={stageSeat === nearSeat ? stage : null}
           side="near"
           actions={
             controls(nearSeat) ? (
@@ -507,23 +533,6 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
 
       <Hand game={game} you={you} options={options} onAction={onAction} />
 
-      {/* The log is a record, not part of play, so it stays out of the way
-          until it is asked for rather than taking a screen of its own. */}
-      <details className="log-drawer">
-        <summary>{t('ui.section.log')}</summary>
-        <div className="log">
-          {game.log
-            .slice(-80)
-            .map((entry, i) => (
-              <div key={i} className="log__entry">
-                <span className="log__phase">r{entry.round} </span>
-                {entry.player ? <span className="log__player">{entry.player} </span> : null}
-                {entry.message}
-              </div>
-            ))
-            .reverse()}
-        </div>
-      </details>
     </div>
   );
 }
@@ -586,6 +595,24 @@ function Hand({
           {t('ui.play.hand')} · {player.name}
           <span className="hand__count">{player.hand.length}</span>
         </h2>
+
+        {/* The log is a record, not part of play: it shares the hand's line
+            and opens over the table when it is asked for. */}
+        <details className="log-drawer">
+          <summary>{t('ui.section.log')}</summary>
+          <div className="log">
+            {game.log
+              .slice(-80)
+              .map((entry, i) => (
+                <div key={i} className="log__entry">
+                  <span className="log__phase">r{entry.round} </span>
+                  {entry.player ? <span className="log__player">{entry.player} </span> : null}
+                  {entry.message}
+                </div>
+              ))
+              .reverse()}
+          </div>
+        </details>
 
         {shown && shared ? (
           <div className="hand__seats">

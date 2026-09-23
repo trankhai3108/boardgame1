@@ -77,9 +77,9 @@
 
   position: relative;
   display: grid;
-  grid-template-columns: 6rem minmax(0, 1fr) 9rem;
+  grid-template-columns: 5.5rem minmax(0, 1fr) 8.5rem;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.4rem 0.5rem;
   border: 1px solid var(--line, #24333f);
   border-radius: 1rem;
   background:
@@ -90,13 +90,54 @@
 
 .seat__middle {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 0.4rem;
+  /* board (flexible) | stage | buttons. The last two never scroll away. */
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 0.35rem;
   min-width: 0;
   min-height: 0;
 }
 
 .seat__board { min-height: 0; }
+
+/*
+ * The dice and the attack being worked out, in front of the player they
+ * belong to rather than in a band between the two of them.
+ */
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.8rem;
+  max-height: clamp(6rem, 19vh, 14rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.stage .dice-row { margin: 0; gap: 0.35rem; }
+.stage .die { width: 2.4rem; height: 2.4rem; }
+.stage .attack-summary { margin: 0; flex: 1 1 18rem; padding: 0.35rem 0.6rem; }
+.stage .attack-summary__amount { font-size: 1.3rem; }
+.stage .ability-list {
+  margin: 0;
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Beside the dice a combo is a choice, not a page of rules: it reads on one
+   line, and the board behind it keeps the height that buys. */
+.stage .ability-option {
+  width: auto;
+  flex: 1 1 14rem;
+  padding: 0.3rem 0.6rem;
+}
+
+.stage .ability-option > span { display: flex; align-items: baseline; gap: 0.5rem; }
+.stage .ability-option br { display: none; }
+.stage .ability-option__text { font-size: 0.78rem; }
+.stage .pending { margin: 0; flex: 1 1 100%; }
 
 /* The buttons sit with the player who has to press them, not in the middle. */
 .seat__actions {
@@ -219,14 +260,15 @@
   display: grid;
   /* The portrait is the middle of the board, not the bulk of it: it gets a
      share, capped, and the wings keep their natural width. */
-  grid-template-columns: auto minmax(5rem, 15rem) auto;
-  gap: 0.5rem;
-  justify-content: center;
+  /* The wings sit at the edges with the portrait between them, filling the
+     row. Shrink-wrapped and centred, the board left a third of the screen
+     empty on either side and had to print at a size nobody could read. */
+  grid-template-columns: auto minmax(6rem, 20rem) auto;
+  gap: 0.6rem;
+  justify-content: stretch;
   align-items: stretch;
-  width: max-content;
-  max-width: 100%;
-  margin-inline: auto;
-  padding: 0.35rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
   border-radius: 0.8rem;
   background:
     linear-gradient(180deg, rgb(255 255 255 / 3%), transparent 40%),
@@ -236,9 +278,13 @@
 /* Four ability slots a side, two by two, exactly as the folding board prints. */
 .board__wing {
   display: grid;
-  grid-template-columns: repeat(2, auto);
+  /* `max-content`, not `auto`: the board stretches the wings to fill the row,
+     and auto columns would take that slack as a gap between the two cards
+     rather than leaving it at the edge of the board. */
+  grid-template-columns: repeat(2, max-content);
   gap: 0.35rem;
   align-content: start;
+  justify-content: center;
   /* Both cards in a row match, but a row is only as tall as it needs to be. */
   align-items: stretch;
 }
@@ -379,7 +425,19 @@
   transition: background 200ms, color 200ms;
 }
 
-.rail__token--empty { opacity: 0.4; }
+/*
+ * Dimmed with colour, not opacity: opacity composites the whole subtree, and
+ * the hover panel lives inside the button, so a faded slot faded its own
+ * explanation too.
+ */
+.rail__token--empty {
+  border-color: #16222b;
+  background: #0b1219;
+  color: #5b6f7d;
+}
+
+.rail__token--empty > svg { opacity: 0.45; }
+.rail__token--empty .rail__token-count { color: #5b6f7d; }
 .rail__token--held { border-color: #2c4254; background: #14232d; }
 .rail__token--held .rail__token-count { background: #24455c; color: #cfeaff; }
 .rail__token--positive.rail__token--held { border-color: #2f6b52; }
@@ -647,14 +705,14 @@
  */
 .app:has(.play-screen) {
   max-width: none;
-  padding: 0.6rem 0.75rem 0.75rem;
+  padding: 0.35rem 0.6rem 0.5rem;
 }
 
-.app:has(.play-screen) .app__header { margin-bottom: 0.4rem; }
-.app:has(.play-screen) .app__title { font-size: 1.4rem; }
+.app:has(.play-screen) .app__header { margin-bottom: 0.25rem; }
+.app:has(.play-screen) .app__title { font-size: 1.15rem; }
 .app:has(.play-screen) .app__header .app__subtitle { display: none; }
-.app:has(.play-screen) .tabs { margin: 0 0 0.4rem; gap: 0.3rem; }
-.app:has(.play-screen) .tab { padding: 0.2rem 0.7rem; font-size: 0.78rem; }
+.app:has(.play-screen) .tabs { margin: 0 0 0.25rem; gap: 0.25rem; }
+.app:has(.play-screen) .tab { padding: 0.12rem 0.6rem; font-size: 0.72rem; }
 
 /*
  * The whole game fits the window without scrolling.
@@ -669,8 +727,8 @@
   /* phase | table | hand | log. The table takes everything the other three
      do not, so the boards shrink instead of the page growing. */
   grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: 0.4rem;
-  height: calc(100dvh - var(--play-chrome, 7.8rem));
+  gap: 0.3rem;
+  height: calc(100dvh - var(--play-chrome, 6.6rem));
   min-height: 32rem;
 }
 
@@ -685,6 +743,21 @@
 
 .play-screen .table:has(.table__others) {
   grid-template-rows: minmax(0, 1fr) auto auto minmax(0, 1fr);
+}
+
+/*
+ * The player holding the dice gets the bigger share.
+ *
+ * Their row carries a board and the dice and the combos and the buttons; the
+ * other player's carries a board they are only reading. An even split starves
+ * the one who is actually playing.
+ */
+.play-screen .table:has(.seat--near .stage:not(:empty)) {
+  grid-template-rows: minmax(0, 0.76fr) auto minmax(0, 1.24fr);
+}
+
+.play-screen .table:has(.seat--far .stage:not(:empty)) {
+  grid-template-rows: minmax(0, 1.24fr) auto minmax(0, 0.76fr);
 }
 
 /* A board that will not fit scrolls inside its own row rather than being cut
@@ -706,8 +779,23 @@
 }
 
 /* Slots size off the height the table has to spare, so the board fits. */
-.board { --slot: clamp(76px, 10vh, 190px); }
-.seat--far .board { --slot: clamp(68px, 8.4vh, 155px); }
+/*
+ * A slot is as big as the row can afford in both directions.
+ *
+ * Height alone made every card a thumbnail on a wide screen while a third of
+ * that screen sat empty either side of the board; width alone would push the
+ * board off the bottom. The smaller of the two is the one that fits.
+ */
+/* Tuned by measuring: at a 900px window a slot above about 105px puts the
+   second row of the board past the bottom of its seat. */
+.board { --slot: min(clamp(96px, 10vw, 230px), clamp(96px, 11.3vh, 230px)); }
+
+/* A seat holding the dice has less height for its board, so the slots come
+   down to meet it rather than the board scrolling out from under the player
+   who is mid-turn. */
+.seat:has(.stage:not(:empty)) .board {
+  --slot: min(clamp(92px, 9vw, 200px), clamp(92px, 10.2vh, 200px));
+}
 
 .board__slot .dt-ability {
   --dt-ability-w: var(--slot);
@@ -833,48 +921,6 @@
 .hand__bar { margin-top: 0; }
 
 /* ================================================================ */
-/* Token tooltip                                                     */
-/* ================================================================ */
-
-/*
- * What a token does, on hover.
- *
- * The browser's own `title` tooltip takes a second to appear and cannot be
- * styled, which is no use when you are deciding whether to spend something.
- */
-.rail__token { position: relative; }
-
-.rail__token::after {
-  content: attr(data-tip);
-  position: absolute;
-  right: calc(100% + 0.5rem);
-  top: 50%;
-  z-index: 70;
-  width: 16rem;
-  padding: 0.5rem 0.7rem;
-  border-radius: 0.5rem;
-  border: 1px solid #33485a;
-  background: rgb(8 14 18 / 97%);
-  color: #dbe8f2;
-  font-size: 0.74rem;
-  font-weight: 400;
-  line-height: 1.35;
-  text-align: left;
-  white-space: normal;
-  transform: translateY(-50%) scale(0.96);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms, transform 120ms;
-  box-shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 60%);
-}
-
-.rail__token:hover::after,
-.rail__token:focus-visible::after {
-  opacity: 1;
-  transform: translateY(-50%) scale(1);
-}
-
-/* ================================================================ */
 /* Dice                                                              */
 /* ================================================================ */
 
@@ -892,6 +938,21 @@
 /* ================================================================ */
 /* Log drawer                                                        */
 /* ================================================================ */
+
+.log-drawer { position: relative; }
+
+.log-drawer[open] .log {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 85;
+  width: min(34rem, 80vw);
+  padding: 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid #33485a;
+  background: rgb(8 14 18 / 98%);
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 70%);
+}
 
 .log-drawer > summary {
   cursor: pointer;
@@ -912,4 +973,69 @@
 @media (prefers-reduced-motion: reduce) {
   .die--thrown,
   .hand__card { animation: none; transition: none; }
+}
+
+
+/* ================================================================ */
+/* Hover to read                                                     */
+/* ================================================================ */
+
+/*
+ * A readable copy of whatever the pointer is on.
+ *
+ * The board and the token rail both scroll inside their own row, and a box
+ * that scrolls clips what tries to grow out of it, so the copy is `fixed` and
+ * therefore answers to the window rather than to the row. Nothing in the row
+ * changes size, so the thing under the pointer never moves away from it.
+ */
+.board__slot,
+.rail__token {
+  position: relative;
+}
+
+.zoom {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.96);
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
+  filter: drop-shadow(0 1rem 2.5rem rgb(0 0 0 / 80%));
+}
+
+.board__slot:hover > .zoom,
+.board__slot:focus-within > .zoom,
+.rail__token:hover > .zoom,
+.rail__token:focus-visible > .zoom {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.zoom .dt-ability { --dt-ability-w: clamp(230px, 26vw, 420px); }
+.zoom .dt-ability--ultimate { --dt-ability-w: clamp(420px, 46vw, 760px); }
+
+/* A token has no card of its own, so the copy is the rule, set out. */
+.zoom--token {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: clamp(17rem, 26vw, 24rem);
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.7rem;
+  border: 1px solid #3a5468;
+  background: rgb(9 15 20 / 98%);
+  color: #e6f0f7;
+  text-align: left;
+  white-space: normal;
+}
+
+.zoom__head { display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem; }
+.zoom__head svg { width: 1.6rem; height: 1.6rem; }
+.zoom__head em { font-style: normal; color: #8aa0b0; }
+.zoom__text { font-size: 0.86rem; font-weight: 400; line-height: 1.45; color: #cfe0ec; }
+
+@media (prefers-reduced-motion: reduce) {
+  .zoom { transition: none; }
 }
