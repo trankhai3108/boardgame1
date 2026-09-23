@@ -261,6 +261,10 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   // whoever has to act on it.
   const stageOwner = game.roll ? game.roll.playerIndex : game.players.indexOf(actingPlayer);
 
+  // Whose move it is, which is not always whose turn it is: defending,
+  // picking a target and answering a card all belong to somebody else.
+  const actingSeat = game.players.indexOf(actingPlayer);
+
   const winnerTeam = game.teams.find((team) => team.id === game.winner);
 
   const nameFor = (index: number) => game.players[index].name;
@@ -488,6 +492,7 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           index={farSeat}
           you={you}
           stage={stageSeat === farSeat ? stage : null}
+          acting={actingSeat === farSeat && game.phase !== 'gameOver'}
           side="far"
           actions={
             controls(farSeat) ? (
@@ -538,6 +543,7 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           index={nearSeat}
           you={you}
           stage={stageSeat === nearSeat ? stage : null}
+          acting={actingSeat === nearSeat && game.phase !== 'gameOver'}
           side="near"
           actions={
             controls(nearSeat) ? (

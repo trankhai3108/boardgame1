@@ -154,9 +154,43 @@
 .seat--far { --seat-scale: 0.92; opacity: 0.94; }
 .seat--far .board__portrait { max-height: 8rem; }
 
+/* Whose turn it is. */
 .seat--active {
   border-color: color-mix(in srgb, var(--dt-hero-accent, #4fd1c5) 70%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--dt-hero-accent, #4fd1c5) 35%, transparent);
+}
+
+/*
+ * Whose move it is — which is not always whose turn it is, since defending
+ * and picking a target belong to somebody else. Their whole side of the table
+ * breathes, in their own hero's colour, so it reads from across the room
+ * without having to find and read the phase bar.
+ */
+.seat--acting {
+  --glow: var(--dt-hero-accent, #4fd1c5);
+  border-color: var(--glow);
+  animation: seat-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes seat-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--glow) 45%, transparent),
+      0 0 0.7rem color-mix(in srgb, var(--glow) 18%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--glow) 85%, transparent),
+      0 0 2.2rem color-mix(in srgb, var(--glow) 45%, transparent);
+  }
+}
+
+/* A seat under attack says so louder than a seat merely thinking. */
+.seat--acting.seat--targeted { animation-name: seat-breathe-hit; }
+
+@keyframes seat-breathe-hit {
+  0%, 100% { box-shadow: 0 0 0 1px rgb(201 88 79 / 55%), 0 0 0.7rem rgb(201 88 79 / 22%); }
+  50% { box-shadow: 0 0 0 2px rgb(201 88 79 / 95%), 0 0 2.2rem rgb(201 88 79 / 55%); }
 }
 
 .seat--targeted { border-color: #c9584f; box-shadow: 0 0 1.4rem rgb(201 88 79 / 22%); }
@@ -669,6 +703,7 @@
 
 /* Nothing here carries meaning that is not also in the log. */
 @media (prefers-reduced-motion: reduce) {
+  .seat--acting { animation: none; box-shadow: 0 0 0 2px var(--glow); }
   .fx-card,
   .fx-number,
   .fx-spend,

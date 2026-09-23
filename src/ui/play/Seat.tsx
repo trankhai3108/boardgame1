@@ -44,6 +44,7 @@ export function Seat({
   spendable,
   onSpend,
   hit,
+  acting,
   actions,
   stage,
 }: {
@@ -57,6 +58,8 @@ export function Seat({
   onSpend: (statusId: string) => void;
   /** Damage this seat just took, which the board flinches from. */
   hit: number | null;
+  /** True when the game is waiting on this player to move. */
+  acting: boolean;
   /** The buttons this player has to press, drawn under their own board. */
   actions?: React.ReactNode;
   /** Their dice and the attack being worked out, drawn beside their board. */
@@ -79,6 +82,7 @@ export function Seat({
     'seat',
     `seat--${side}`,
     active ? 'seat--active' : '',
+    acting ? 'seat--acting' : '',
     targeted ? 'seat--targeted' : '',
     out ? 'seat--out' : '',
     you === index ? 'seat--you' : '',

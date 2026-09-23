@@ -128,6 +128,45 @@ describe('the play table renders', () => {
     expect(html).not.toContain('table__other');
   });
 
+  it('lights up the seat the game is waiting on, and only that one', () => {
+    const game = newGame();
+    const html = table(game);
+    expect(html.match(/seat--acting/g)).toHaveLength(1);
+    // It is the active player's move at the start of a game.
+    expect(html).toContain('seat seat--near seat--active seat--acting');
+  });
+
+  it('lights up the defender while they are the one to answer', () => {
+    const game = newGame();
+    game.attack = {
+      attacker: 0,
+      defender: 1,
+      abilityId: 'slash',
+      abilityName: 'Slash',
+      incoming: 5,
+      type: 'normal',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: false,
+    };
+    game.phase = 'defensiveRoll';
+
+    // Online, so the ends do not follow the turn: you are seat 0, the
+    // attacker, and the defender is across the table.
+    const html = table(game, 0);
+    expect(html.match(/seat--acting/g)).toHaveLength(1);
+    // The glow is on the defender, not on whoever's turn it happens to be.
+    expect(html).toMatch(/seat seat--far[^"]*seat--acting[^>]*data-seat="1"/);
+  });
+
+  it('lights up nobody once the game is over', () => {
+    const game = newGame();
+    game.teams[1].health = 0;
+    game.phase = 'gameOver';
+    game.winner = game.teams[0].id;
+    expect(table(game)).not.toContain('seat--acting');
+  });
+
   it('survives the end of the game', () => {
     const game = newGame();
     game.teams[1].health = 0;
