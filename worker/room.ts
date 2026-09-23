@@ -1,7 +1,7 @@
 import { HEROES, HERO_LIST } from '../src/data/heroes';
 import type { Action } from '../src/engine/actions';
 import { canAct, redactFor } from '../src/engine/authority';
-import { runBots } from '../src/engine/bot';
+import { chooseBotAction, seatToAct, waitingOnBot } from '../src/engine/bot';
 import { reduce, type HeroLookup } from '../src/engine/reducer';
 import {
   MODES,
@@ -21,6 +21,17 @@ interface Stored {
   seats: Seat[];
   game: GameState | null;
 }
+
+/**
+ * How long the room waits between one bot move and the next.
+ *
+ * A bot turn is a dozen actions. Played in one go the table only ever sees
+ * the state it ends in, so a bot's dice were thrown, kept and re-thrown
+ * entirely off screen and its attack arrived as a number that had already
+ * changed. One move at a time, at about reading speed, is the whole point of
+ * watching somebody else play.
+ */
+const BOT_STEP_MS = 700;
 
 function maxSeats(mode: GameMode): number {
   return mode === 'koth' ? 5 : playerCountFor(mode);
@@ -132,6 +143,37 @@ export class Room implements DurableObject {
     }
   }
 
+  /**
+   * Plays one bot move, if a bot is the one being waited on.
+   *
+   * Returns true when another move is owed, so the caller can arm the alarm
+   * that will come back for it.
+   */
+  private stepBot(room: Stored): boolean {
+    if (!room.game || !waitingOnBot(room.game)) return false;
+
+    const seat = seatToAct(room.game);
+    const action = chooseBotAction(room.game, seat, lookup);
+    if (!action) return false;
+
+    const next = reduce(room.game, action, lookup);
+    if (next === room.game) return false;
+    room.game = next;
+
+    return waitingOnBot(room.game);
+  }
+
+  /** Plays one bot move and comes back for the next. */
+  async alarm(): Promise<void> {
+    const room = await this.load();
+    if (!room) return;
+
+    const more = this.stepBot(room);
+    await this.save(room);
+    this.broadcast(room);
+    if (more) await this.state.storage.setAlarm(Date.now() + BOT_STEP_MS);
+  }
+
   private view(room: Stored): RoomView {
     return {
       code: room.code,
@@ -188,6 +230,13 @@ export class Room implements DurableObject {
     }
     await this.save(room);
     this.broadcast(room);
+  }
+
+  /** Schedules the first bot move, if one is owed. */
+  private async armBots(room: Stored): Promise<void> {
+    if (room.game && waitingOnBot(room.game)) {
+      await this.state.storage.setAlarm(Date.now() + BOT_STEP_MS);
+    }
   }
 
   /* --- protocol -------------------------------------------------------- */
@@ -322,7 +371,7 @@ export class Room implements DurableObject {
           })),
           { mode: room.mode, seed: Math.floor(Math.random() * 2 ** 31) },
         );
-        room.game = runBots(room.game, lookup, (g, a) => reduce(g, a, lookup));
+        await this.armBots(room);
         break;
       }
 
@@ -332,8 +381,9 @@ export class Room implements DurableObject {
         if (index < 0) throw new Error('You are not in this game');
         if (!canAct(room.game, index, message.action as Action)) throw new Error('Not your move');
         room.game = reduce(room.game, message.action as Action, lookup);
-        // Let every bot seat take its turn before handing control back.
-        room.game = runBots(room.game, lookup, (g, a) => reduce(g, a, lookup));
+        // Bot seats play on the alarm, one move at a time, so the other
+        // players can watch the turn rather than being handed its result.
+        await this.armBots(room);
         break;
       }
 

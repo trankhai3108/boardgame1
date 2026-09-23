@@ -215,7 +215,17 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
    * now — the two ends of the attack on the table, failing that the seat the
    * reader picked, failing that the first opponent still standing.
    */
-  const nearSeat = you >= 0 ? you : game.players.indexOf(actingPlayer);
+  const nearSeat =
+    you >= 0
+      ? you
+      : actingPlayer.isBot
+        ? // A bot playing is not a reason to turn the table round: the board
+          // in front of you should stay in front of you while you watch.
+          Math.max(
+            0,
+            game.players.findIndex((p) => !p.isBot),
+          )
+        : game.players.indexOf(actingPlayer);
 
   const facedByPlay =
     attack && attack.attacker === nearSeat
