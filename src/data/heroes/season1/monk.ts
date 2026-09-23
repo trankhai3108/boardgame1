@@ -64,6 +64,71 @@ export const MONK: Hero = {
           effects: [{ t: 'damage', amount: 8 }],
         },
       ],
+      upgrades: {
+        // Level III prints 7/8/9 with the Knockdown clause; II is the same
+        // damage without it, which is the only reading the source supports.
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { fist: 3 } },
+          text: ['Deal [[dmg:7]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 7 },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { fist: 4 } },
+          text: ['Deal [[dmg:8]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 8 },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { fist: 5 } },
+          text: ['Deal [[dmg:9]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 9 },
+          ],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { fist: 3 } },
+          text: ['Deal [[dmg:7]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 7 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { fist: 4 } },
+          text: ['Deal [[dmg:8]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { fist: 5 } },
+          text: ['Deal [[dmg:9]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 9 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'meditate',
@@ -102,6 +167,19 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { zen: 3 } },
+            text: ['Gain 6 *Chi* [[chi]].', 'Gain *Evasive* [[evasive]] & *Cleanse* [[cleanse]].'],
+            effects: [
+              { t: 'gainStatus', status: 'chi', amount: 6 },
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'gainStatus', status: 'cleanse' },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'combo-strike',
@@ -152,6 +230,49 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { fist: 3, palm: 1 } },
+            text: ['Deal [[dmg:5]] dmg & roll [[die:2]]:', 'Then resolve each face.'],
+            effects: [
+              { t: 'damage', amount: 5 },
+              {
+                t: 'subRoll',
+                dice: 2,
+                outcomes: [
+                  { on: 'fist', effects: [{ t: 'damage', amount: 2 }] },
+                  { on: 'palm', effects: [{ t: 'damage', amount: 3 }] },
+                  { on: 'zen', effects: [{ t: 'gainStatus', status: 'chi', amount: 2 }] },
+                  {
+                    on: 'lotus',
+                    effects: [
+                      {
+                        t: 'choose',
+                        request: {
+                          pick: 'oneOf',
+                          options: [
+                            { id: 'monk-evasive', label: 'Gain Evasive' },
+                            { id: 'monk-cleanse', label: 'Gain Cleanse' },
+                          ],
+                        },
+                        effects: [
+                          {
+                            t: 'when',
+                            cond: { chose: 'monk-evasive' },
+                            effects: [{ t: 'gainStatus', status: 'evasive' }],
+                            otherwise: [{ t: 'gainStatus', status: 'cleanse' }],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'tempest-rush',
@@ -183,6 +304,33 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { palm: 3 } },
+            text: [
+              'Roll [[die:3]]:',
+              'Deal dmg equal to the total roll value.',
+              'If the roll value is at least [[dmg:12]], inflict *Knockdown* [[knockdown]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 3,
+                outcomes: [],
+                total: [
+                  { t: 'damage', amount: { perPip: 1 } },
+                  {
+                    t: 'when',
+                    cond: { rollAtLeast: 12 },
+                    effects: [{ t: 'gainStatus', status: 'knockdown', target: 'opponent' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'fist-of-harmony',
@@ -200,6 +348,19 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: ['Deal [[dmg:6]] dmg.', 'Then gain 3 *Chi* [[chi]].'],
+            effects: [
+              { t: 'damage', amount: 6 },
+              { t: 'gainStatus', status: 'chi', amount: 3 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'lotus-strike',
@@ -220,6 +381,34 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { lotus: 3 } },
+            text: [
+              'Deal [[dmg:2]] *undefendable* dmg.',
+              'Then gain *Evasive* [[evasive]] & 2 *Chi* [[chi]].',
+            ],
+            effects: [
+              { t: 'damage', amount: 2, undefendable: true },
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'gainStatus', status: 'chi', amount: 2 },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { lotus: 4 } },
+            text: [
+              'Deal [[dmg:6]] *undefendable* dmg.',
+              'Then increase *Chi* [[chi]] stack limit by 1 and gain 6 *Chi* [[chi]].',
+            ],
+            effects: [
+              { t: 'damage', amount: 6, undefendable: true },
+              { t: 'stackLimitBonus', status: 'chi', amount: 1 },
+              { t: 'gainStatus', status: 'chi', amount: 6 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'fist-of-tranquility',
@@ -238,6 +427,24 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: [
+              'Deal [[dmg:7]] dmg. Inflict *Knockdown* [[knockdown]].',
+              'Then gain *Evasive* [[evasive]] & 3 *Chi* [[chi]].',
+            ],
+            effects: [
+              { t: 'damage', amount: 7 },
+              { t: 'gainStatus', status: 'knockdown', target: 'opponent' },
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'gainStatus', status: 'chi', amount: 3 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'serenity',
@@ -261,6 +468,75 @@ export const MONK: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: ['Gain 1 × [[zen]] *Chi* [[chi]].', 'Deal [[dmg:1]] × [[fist]] dmg.'],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  { on: 'zen', effects: [{ t: 'gainStatus', status: 'chi', amount: 1 }] },
+                  { on: 'fist', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                ],
+              },
+            ],
+          },
+        ],
+        III: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: [
+              'Gain 1 × [[zen]] *Chi* [[chi]]. Deal [[dmg:1]] × [[fist]] dmg.',
+              'With both [[zen]] and [[lotus]], gain *Evasive* [[evasive]] or *Cleanse* [[cleanse]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  { on: 'zen', effects: [{ t: 'gainStatus', status: 'chi', amount: 1 }] },
+                  { on: 'fist', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                  {
+                    on: 'lotus',
+                    atLeast: 1,
+                    effects: [
+                      {
+                        t: 'when',
+                        cond: { rolled: 'zen' },
+                        effects: [
+                          {
+                            t: 'choose',
+                            request: {
+                              pick: 'oneOf',
+                              options: [
+                                { id: 'monk-evasive', label: 'Gain Evasive' },
+                                { id: 'monk-cleanse', label: 'Gain Cleanse' },
+                              ],
+                            },
+                            effects: [
+                              {
+                                t: 'when',
+                                cond: { chose: 'monk-evasive' },
+                                effects: [{ t: 'gainStatus', status: 'evasive' }],
+                                otherwise: [{ t: 'gainStatus', status: 'cleanse' }],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'transcendence',

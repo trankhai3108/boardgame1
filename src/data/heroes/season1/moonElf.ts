@@ -64,6 +64,84 @@ export const MOON_ELF: Hero = {
           effects: [{ t: 'damage', amount: 7 }],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 3 } },
+          text: ['Deal [[dmg:4]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 4 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'gainStatus', status: 'entangle', target: 'opponent' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 4 } },
+          text: ['Deal [[dmg:6]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'gainStatus', status: 'entangle', target: 'opponent' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 5 } },
+          text: ['Deal [[dmg:8]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'gainStatus', status: 'entangle', target: 'opponent' }],
+            },
+          ],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 3 } },
+          text: ['Deal [[dmg:5]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 5 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'gainStatus', status: 'entangle', target: 'opponent' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 4 } },
+          text: ['Deal [[dmg:7]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 7 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'gainStatus', status: 'entangle', target: 'opponent' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 5 } },
+          text: ['Deal [[dmg:9]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 9 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [{ t: 'gainStatus', status: 'entangle', target: 'opponent' }],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'demising-shot',
@@ -80,6 +158,26 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { arrow: 2, moon: 1 } },
+            text: ['Inflict *Targeted* [[targeted]] & *Entangle* [[entangle]].'],
+            effects: [
+              { t: 'gainStatus', status: 'targeted', target: 'opponent' },
+              { t: 'gainStatus', status: 'entangle', target: 'opponent' },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { arrow: 3, moon: 2 } },
+            text: ['Inflict *Targeted* [[targeted]].', 'Deal [[dmg:6]] dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'targeted', target: 'opponent' },
+              { t: 'damage', amount: 6 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'covered-shot',
@@ -96,6 +194,33 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { foot: 3 } },
+            text: [
+              'A chosen player gains *Evasive* [[evasive]].',
+              'Deal [[dmg:2]] *undefendable* dmg.',
+            ],
+            effects: [
+              {
+                t: 'choose',
+                request: { pick: 'player' },
+                effects: [{ t: 'gainStatus', status: 'evasive', target: 'chosen' }],
+              },
+              { t: 'damage', amount: 2, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { arrow: 2, foot: 3 } },
+            text: ['Gain *Evasive* [[evasive]].', 'Deal [[dmg:9]] dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'damage', amount: 9 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'exploding-arrow',
@@ -126,6 +251,55 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 1, moon: 3 } },
+          text: [
+            'Deal [[dmg:3]] dmg & roll [[die:5]]:',
+            'Add [[dmg:1]] × [[arrow]] and [[dmg:2]] × [[foot]].',
+            'Opponent loses [[cp:1]] × [[moon]]. Inflict *Blind* [[blind]].',
+          ],
+          effects: [
+            { t: 'damage', amount: 3 },
+            {
+              t: 'subRoll',
+              dice: 5,
+              outcomes: [
+                { on: 'arrow', effects: [{ t: 'damage', amount: 1 }] },
+                { on: 'foot', effects: [{ t: 'damage', amount: 2 }] },
+                { on: 'moon', effects: [{ t: 'gainCP', amount: -1, target: 'opponent' }] },
+              ],
+            },
+            { t: 'gainStatus', status: 'blind', target: 'opponent' },
+          ],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { arrow: 1, moon: 3 } },
+          text: [
+            'Deal [[dmg:3]] dmg & roll [[die:5]]:',
+            'Add [[dmg:1]] × [[arrow]] and [[dmg:2]] × [[foot]].',
+            'Opponent loses [[cp:1]] × [[moon]]. Inflict *Blind* [[blind]] & *Entangle* [[entangle]].',
+          ],
+          effects: [
+            { t: 'damage', amount: 3 },
+            {
+              t: 'subRoll',
+              dice: 5,
+              outcomes: [
+                { on: 'arrow', effects: [{ t: 'damage', amount: 1 }] },
+                { on: 'foot', effects: [{ t: 'damage', amount: 2 }] },
+                { on: 'moon', effects: [{ t: 'gainCP', amount: -1, target: 'opponent' }] },
+              ],
+            },
+            { t: 'gainStatus', status: 'blind', target: 'opponent' },
+            { t: 'gainStatus', status: 'entangle', target: 'opponent' },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'entangling-shot',
@@ -143,6 +317,19 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: ['Inflict *Entangle* [[entangle]].', 'Deal [[dmg:9]] dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'entangle', target: 'opponent' },
+              { t: 'damage', amount: 9 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'eclipse',
@@ -164,6 +351,36 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { moon: 3 } },
+            text: [
+              'Gain *Evasive* [[evasive]].',
+              'Inflict *Blind* [[blind]], *Entangle* [[entangle]] & *Targeted* [[targeted]].',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'gainStatus', status: 'blind', target: 'opponent' },
+              { t: 'gainStatus', status: 'entangle', target: 'opponent' },
+              { t: 'gainStatus', status: 'targeted', target: 'opponent' },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { moon: 4 } },
+            text: [
+              'Inflict *Blind* [[blind]], *Entangle* [[entangle]] & *Targeted* [[targeted]].',
+              'Deal [[dmg:9]] dmg.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'blind', target: 'opponent' },
+              { t: 'gainStatus', status: 'entangle', target: 'opponent' },
+              { t: 'gainStatus', status: 'targeted', target: 'opponent' },
+              { t: 'damage', amount: 9 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'blinding-shot',
@@ -186,6 +403,31 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { arrow: 1, foot: 2, moon: 1 } },
+            text: ['Gain 3 *Evasive* [[evasive]].', 'Inflict *Entangle* [[entangle]].'],
+            effects: [
+              { t: 'gainStatus', status: 'evasive', amount: 3 },
+              { t: 'gainStatus', status: 'entangle', target: 'opponent' },
+            ],
+          },
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: [
+              'Inflict *Blind* [[blind]]. Gain *Evasive* [[evasive]].',
+              'Deal [[dmg:10]] dmg.',
+            ],
+            effects: [
+              { t: 'gainStatus', status: 'blind', target: 'opponent' },
+              { t: 'gainStatus', status: 'evasive' },
+              { t: 'damage', amount: 10 },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'missed-me',
@@ -212,6 +454,30 @@ export const MOON_ELF: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 5 },
+            requirementLabel: 'DEFENSE ROLL 5',
+            text: [
+              'On [[foot]][[foot]], prevent half the incoming dmg *(rounded up)*.',
+              'Deal [[dmg:1]] for every 2 × [[arrow]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 5,
+                outcomes: [
+                  { on: 'foot', atLeast: 2, effects: [{ t: 'preventFraction', divisor: 2 }] },
+                  // Once at two Bows and again at four: one damage per pair.
+                  { on: 'arrow', atLeast: 2, effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                  { on: 'arrow', atLeast: 4, effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'lunar-eclipse',

@@ -687,6 +687,10 @@ function holds(ctx: EffectContext, cond: Condition): boolean {
   if ('has' in cond) return statusCount(self, cond.has) >= (cond.min ?? 1);
   if ('chose' in cond) return ctx.chosen?.optionId === cond.chose;
   if ('spentAtLeast' in cond) return (ctx.lastSpend ?? 0) >= cond.spentAtLeast;
+  if ('rolled' in cond) {
+    const n = ctx.usedDice.filter((d) => symbolOf(ctx.hero, d.value) === cond.rolled).length;
+    return n >= (cond.min ?? 1);
+  }
   if ('ofAKind' in cond) {
     const counts = new Map<number, number>();
     for (const die of ctx.usedDice) counts.set(die.value, (counts.get(die.value) ?? 0) + 1);

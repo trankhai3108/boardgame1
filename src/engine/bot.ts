@@ -1,6 +1,7 @@
 import type { Action } from './actions';
 import { canAct } from './authority';
 import { symbolOf } from './dice';
+import { levelOf, tiersAt } from './combos';
 import { legalActions, type HeroLookup } from './reducer';
 import {
   RULES,
@@ -108,16 +109,20 @@ function aim(state: GameState, lookup: HeroLookup, playerIndex: number) {
   const options = hero.abilities
     .filter((a) => a.kind === 'offensive')
     .flatMap((ability) =>
-      ability.tiers.map((tier, tierIndex) => {
+      // An upgraded slot can have more tiers than it started with, so the
+      // levels this player has bought decide which list is being indexed.
+      tiersAt(ability, levelOf(ability, state.players[playerIndex].abilityLevels)).map(
+        (tier, tierIndex) => {
         const { matched, need } = progress(state, lookup, playerIndex, tier.requirement);
-        return {
-          abilityId: ability.id,
-          tierIndex,
-          keep: matched,
-          need,
-          score: scoreTier(tier.effects) + (ability.ultimate ? 20 : 0),
-        };
-      }),
+          return {
+            abilityId: ability.id,
+            tierIndex,
+            keep: matched,
+            need,
+            score: scoreTier(tier.effects) + (ability.ultimate ? 20 : 0),
+          };
+        },
+      ),
     );
 
   options.sort((a, b) => a.need - b.need || b.score - a.score);
@@ -206,8 +211,12 @@ export function chooseBotAction(
     const best = activations
       .map((option) => {
         const ability = hero.abilities.find((a) => a.id === option.abilityId)!;
-        const tier = ability.tiers[option.tierIndex ?? 0];
-        return { option, score: scoreTier(tier.effects) + (ability.ultimate ? 20 : 0) };
+        const tiers = tiersAt(ability, levelOf(ability, state.players[playerIndex].abilityLevels));
+        const tier = tiers[option.tierIndex ?? 0];
+        return {
+          option,
+          score: tier ? scoreTier(tier.effects) + (ability.ultimate ? 20 : 0) : 0,
+        };
       })
       .sort((a, b) => b.score - a.score)[0];
 

@@ -273,6 +273,42 @@ export const BARBARIAN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        // Level II adds the Battle Cry tier alongside the original roll.
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 2, life: 2 } },
+            text: ['Heal [[heal:2]].', 'Then deal [[dmg:2]] *undefendable* dmg.'],
+            effects: [
+              { t: 'heal', amount: 2 },
+              { t: 'damage', amount: 2, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { sword: 3, pow: 2 } },
+            text: [
+              'Roll [[die:3]]:',
+              'Then deal dmg equal to the total roll value.',
+              'If the roll value is at least [[dmg:14]], inflict *Concussion* [[concussion]].',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 3,
+                outcomes: [],
+                total: [
+                  { t: 'damage', amount: { perPip: 1 } },
+                  {
+                    t: 'when',
+                    cond: { rollAtLeast: 14 },
+                    effects: [{ t: 'gainStatus', status: 'concussion', target: 'opponent' }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'mighty-blow',

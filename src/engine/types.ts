@@ -223,7 +223,9 @@ export type Condition =
   /** The spend just before this removed at least this many tokens. */
   | { spentAtLeast: number }
   /** The dice in context show this many of the same number. */
-  | { ofAKind: number };
+  | { ofAKind: number }
+  /** The dice in context include at least `min` of this face. */
+  | { rolled: DieSymbol; min?: number };
 
 /** Per-face results of a sub-roll, keyed by the symbol that came up. */
 export interface SubRollOutcome {

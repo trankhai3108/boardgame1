@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { HEROES } from '../../data/heroes';
 import type { Action } from '../../engine/actions';
 import { canAct, isWaitingOn } from '../../engine/authority';
-import { bestAbilities } from '../../engine/combos';
+import { bestAbilities, tiersAt } from '../../engine/combos';
 import { resolveDamage } from '../../engine/damage';
 import { legalActions, passiveOptionsFor, type HeroLookup } from '../../engine/reducer';
 import {
@@ -393,7 +393,13 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
                   (m) => m.ability.id === option.abilityId && m.tierIndex === option.tierIndex,
                 );
                 if (!match) return null;
-                const tier = match.ability.tiers[match.tierIndex];
+                const tier = tiersAt(
+                  match.ability,
+                  game.players[game.roll?.playerIndex ?? game.active].abilityLevels[
+                    match.ability.id
+                  ] ?? match.ability.level,
+                )[match.tierIndex];
+                if (!tier) return null;
                 return (
                   <button
                     key={`${option.abilityId}-${option.tierIndex}`}
