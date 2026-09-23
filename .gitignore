@@ -29,3 +29,6 @@ dist-ssr
 # Local Wrangler secrets
 .dev.vars
 .dev.vars.*
+
+# The publisher's rulebook, kept locally as a reference. Not ours to redistribute.
+Dice_Throne.Rules.en.pdf
