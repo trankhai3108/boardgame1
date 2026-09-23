@@ -1135,3 +1135,20 @@
 }
 
 .rail__way:hover { background: #17343a; }
+
+/*
+ * An ability that has been declared but not yet resolved.
+ *
+ * It is the one moment where the attacker has stopped and the table is
+ * waiting on somebody else, so it wants to read as a held breath rather than
+ * as damage already done.
+ */
+.attack-summary--declared {
+  border-color: #7a5f22;
+  background: #241d0f;
+}
+.attack-summary--declared .attack-summary__note {
+  margin-top: 0.15rem;
+  color: #c8a94e;
+  font-size: 0.8rem;
+}

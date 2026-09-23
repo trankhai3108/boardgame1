@@ -7,6 +7,7 @@ import { SHADOW_THIEF } from '../../data/heroes/season1/shadowThief';
 import type { Action } from '../actions';
 import { legalActions, reduce, type HeroLookup } from '../reducer';
 import { RULES, createGame, healthOf, type GameState } from '../state';
+import { activateThrough } from './support';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 
@@ -206,7 +207,7 @@ describe('status effects in play', () => {
     game = next(game);
     // Force a known ability rather than depending on the roll.
     game.roll!.dice = [1, 2, 3, 4, 6].map((value, i) => ({ id: `d${i}`, value, kept: true }));
-    game = act(game, { type: 'activateAbility', abilityId: 'holy-attack', tierIndex: 0 });
+    game = activateThrough(game, 'holy-attack', 0);
     expect(game.attack?.modifiers).toContainEqual({ source: 'Targeted', kind: 'add', amount: 2 });
   });
 
@@ -261,7 +262,7 @@ describe('ability targeting', () => {
     game = next(game); // -> offensiveRoll
     // Retaliate needs 3 HELMET (3/4) + 1 PRAYER (6).
     game.roll!.dice = [3, 3, 4, 6, 1].map((value, i) => ({ id: `d${i}`, value, kept: true }));
-    game = act(game, { type: 'activateAbility', abilityId: 'retaliate' });
+    game = activateThrough(game, 'retaliate');
 
     expect(game.players[0].statuses.retribution).toBe(1);
     expect(game.players[1].statuses.retribution).toBeUndefined();
@@ -274,7 +275,7 @@ describe('ability targeting', () => {
     game = next(game);
     // Crit Bash needs 4 POW (6) for the Barbarian.
     game.roll!.dice = [6, 6, 6, 6, 1].map((value, i) => ({ id: `d${i}`, value, kept: true }));
-    game = act(game, { type: 'activateAbility', abilityId: 'crit-bash' });
+    game = activateThrough(game, 'crit-bash');
     expect(game.players[1].statuses.stun).toBe(1);
   });
 });
@@ -354,6 +355,11 @@ describe('an ultimate cannot be defended', () => {
 function botAction(state: GameState): Action | null {
   const options = legalActions(state, lookup);
   if (options.length === 0) return null;
+
+  // A declared attack is waiting on its opponents: say something or pass.
+  if (state.response && state.pending.length === 0) {
+    return options.find((a) => a.type === 'passResponse') ?? options[0];
+  }
 
   // A pending roll or choice blocks everything else: settle it first.
   const step = state.pending[state.pending.length - 1];

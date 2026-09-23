@@ -3,6 +3,7 @@ import { HEROES } from '../../data/heroes';
 import { bestAbilities, levelOf, tiersAt } from '../combos';
 import { reduce, type HeroLookup } from '../reducer';
 import { createGame, type GameState } from '../state';
+import { activateThrough } from './support';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const act = (s: GameState, a: Parameters<typeof reduce>[1]) => reduce(s, a, lookup);
@@ -21,7 +22,7 @@ function game(seed = 5): GameState {
 function attackWith(state: GameState, abilityId: string, faces: number[]): GameState {
   let next = act(state, { type: 'nextPhase' });
   next.roll!.dice = faces.map((value, i) => ({ id: `d${i}`, value, kept: true }));
-  return act(next, { type: 'activateAbility', abilityId });
+  return activateThrough(next, abilityId);
 }
 
 describe('ability levels', () => {
@@ -113,7 +114,7 @@ describe('what the dice tell an ability', () => {
     let next = act(state, { type: 'nextPhase' });
     next.roll!.dice = faces.map((value, i) => ({ id: `d${i}`, value, kept: true }));
     const before = next.players[0].hand.length;
-    next = act(next, { type: 'activateAbility', abilityId: 'carducopia' });
+    next = activateThrough(next, 'carducopia');
     return next.players[0].hand.length - before;
   }
 

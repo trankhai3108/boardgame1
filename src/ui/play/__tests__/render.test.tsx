@@ -10,6 +10,7 @@ import { createGame, topPending, type GameState } from '../../../engine/state';
 import { EN } from '../../../i18n/en';
 import { I18nContext, type I18nValue } from '../../../i18n/I18nContext';
 import { GameTable } from '../GameTable';
+import { activateThrough } from '../../../engine/__tests__/support';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const act = (state: GameState, action: Action) => reduce(state, action, lookup);
@@ -79,13 +80,40 @@ describe('the play table renders', () => {
       { id: 'd3', value: 4, kept: false },
       { id: 'd4', value: 5, kept: false },
     ];
-    game = act(game, { type: 'activateAbility', abilityId: 'death-blossom', tierIndex: 0 });
+    game = activateThrough(game, 'death-blossom', 0);
     expect(topPending(game)).not.toBeNull();
 
     const html = table(game);
     expect(html).toContain('pending');
     expect(html).toContain('die--blank');
     expect(html).toContain('Roll');
+  });
+
+  it('tells the defender an ability has been declared, and lets them wave it through', () => {
+    let game = act(newGame(), { type: 'nextPhase' });
+    game.roll!.dice = [
+      { id: 'd0', value: 1, kept: false },
+      { id: 'd1', value: 1, kept: false },
+      { id: 'd2', value: 1, kept: false },
+      { id: 'd3', value: 6, kept: false },
+      { id: 'd4', value: 6, kept: false },
+    ];
+    // Something the defender could actually answer with, so the window opens.
+    game.players[1].hand.unshift('common-card-give-hand#0');
+    game.players[1].cp = 9;
+    const attack = legalActions(game, lookup).find((o) => o.type === 'activateAbility');
+    expect(attack).toBeDefined();
+    game = act(game, attack!);
+    expect(game.response).not.toBeNull();
+
+    // Drawn for the defender, because it is their move, not the attacker's.
+    const html = table(game, 1);
+    expect(html).toContain('attack-summary--declared');
+    expect(html).toContain('declares');
+    expect(html).toContain(EN['ui.action.pass']);
+
+    // ...and not offered to the attacker, who has already had their say.
+    expect(table(game, 0)).not.toContain(EN['ui.action.pass']);
   });
 
   it('draws the choices a card asks for as buttons', () => {

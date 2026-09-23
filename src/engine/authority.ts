@@ -36,6 +36,10 @@ export function canAct(state: GameState, playerIndex: number, action: Action): b
     case 'answerChoice':
       return pending !== null && pending.who === playerIndex;
 
+    // Only the seat being asked may say they are done.
+    case 'passResponse':
+      return state.players[playerIndex].id === action.playerId;
+
     case 'chooseDefense':
       return state.attack?.defender === playerIndex;
 

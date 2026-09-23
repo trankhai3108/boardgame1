@@ -28,6 +28,7 @@ import {
   topPending,
   type GameState,
   type PendingActivation,
+  type PendingAttack,
   type PendingCtx,
   type PendingSink,
   type PendingStep,
@@ -284,6 +285,22 @@ function openDamageWindow(
 }
 
 /**
+ * Notes damage the attacker has earned back, to be dealt once this attack is
+ * out of the way.
+ *
+ * Every source of it — a Defensive Ability, a card played in defence,
+ * Retribution — is damage from outside the attack, so they all leave by the
+ * same door: typeless, and into a window the attacker may answer.
+ */
+function sendDamageBack(attack: PendingAttack, amount: number, source: string): void {
+  if (amount <= 0) return;
+  attack.damageBack = {
+    amount: (attack.damageBack?.amount ?? 0) + amount,
+    source: attack.damageBack?.source ?? source,
+  };
+}
+
+/**
  * Reduces the target's Health Dial — which their whole team shares — honouring
  * Blessing of Divinity, and ends the game if only one team is left standing.
  */
@@ -440,6 +457,50 @@ function findAbility(hero: Hero, abilityId: string): Ability {
  * Targeting Roll Phase, and the ability does not resolve until that settles,
  * because most of its effects need to know who they hit.
  */
+/**
+ * Opponents who still have something they could say about an attack.
+ *
+ * Only a seat that can actually act needs asking: a table where nobody holds
+ * a Roll Phase card or a spendable token should never pause.
+ */
+export function respondersTo(state: GameState, attacker: number, lookup: HeroLookup): number[] {
+  const out: number[] = [];
+  for (const [index, player] of state.players.entries()) {
+    if (index === attacker || !isAlive(state, index)) continue;
+    if (state.players[index].team === state.players[attacker].team) continue;
+    if (stunned(state, index)) continue;
+
+    const hero = heroOf(lookup, player);
+    const hasCard = player.hand.some((cardId) => {
+      const card = cardOf(hero, cardId);
+      return card ? canPlayCard(state, index, card, cardId, lookup) : false;
+    });
+    if (hasCard) out.push(index);
+  }
+  return out;
+}
+
+/** Runs the declared attack now that everybody has had their say. */
+function resumeActivation(state: GameState, lookup: HeroLookup): void {
+  const waiting = state.response;
+  if (!waiting) return;
+  state.response = null;
+
+  const attacker = state.players[state.active];
+  const hero = heroOf(lookup, attacker);
+  const ability = findAbility(hero, waiting.abilityId);
+  const tier = tiersAt(ability, levelOf(ability, attacker.abilityLevels))[waiting.tierIndex];
+
+  // The dice may not be what they were: that is the whole point of the window.
+  if (!tier || !state.roll || !matchRequirement(hero, state.roll.dice, tier.requirement)) {
+    log(state, `${ability.name} no longer activates`, attacker);
+    endOffensivePhase(state);
+    return;
+  }
+
+  runActivation(state, lookup, waiting.abilityId, waiting.tierIndex);
+}
+
 function activateOffensive(
   state: GameState,
   lookup: HeroLookup,
@@ -466,6 +527,41 @@ function activateOffensive(
     throw new Error(`Dice do not activate ${ability.name}`);
   }
 
+  /*
+   * Declared, not yet resolved.
+   *
+   * Anyone who could still answer gets their last chance first — to change a
+   * die, to force a re-roll, to take the ability away entirely. Nobody able
+   * to respond means nothing to wait for.
+   */
+  const responders = respondersTo(state, attackerIndex, lookup);
+  if (responders.length > 0) {
+    state.response = {
+      abilityId,
+      abilityName: ability.name,
+      tierIndex: index,
+      waiting: responders,
+    };
+    log(state, `declares ${ability.name}`, attacker);
+    return;
+  }
+
+  runActivation(state, lookup, abilityId, index);
+}
+
+/** Everything activating an ability does once it is actually going ahead. */
+function runActivation(
+  state: GameState,
+  lookup: HeroLookup,
+  abilityId: string,
+  index: number,
+): void {
+  const attackerIndex = state.active;
+  const attacker = state.players[attackerIndex];
+  const hero = heroOf(lookup, attacker);
+  const ability = findAbility(hero, abilityId);
+  const roll = state.roll;
+  if (!roll) throw new Error('No dice to activate with');
   /*
    * The whole roll goes to the effects, not only the dice the requirement
    * asked for.
@@ -643,6 +739,8 @@ function finishAbility(
 }
 
 function endOffensivePhase(state: GameState): void {
+  // Whatever was declared is over, one way or the other.
+  state.response = null;
   const player = state.players[state.active];
   // Entangle is removed at the conclusion of the Roll Phase.
   if (statusCount(player, 'entangle') > 0) removeStatus(player, 'entangle', 1);
@@ -712,7 +810,7 @@ function finishDefense(
     attack.modifiers.push({ source: ability.name, kind: 'preventFraction', divisor });
   }
   if (outcome.damageToAttacker > 0) {
-    applyDamage(state, lookup, attack.attacker, outcome.damageToAttacker);
+    sendDamageBack(attack, outcome.damageToAttacker, ability.name);
     log(state, `deals ${outcome.damageToAttacker} dmg back`, defender);
   }
 
@@ -770,12 +868,6 @@ function spendStatus(
     attack.modifiers.push(behaviour.spendToPrevent);
     removeStatus(player, statusId, 1);
     log(state, `spends ${statusId}`, player);
-    return;
-  }
-
-  if (isDefender && behaviour.autoAvoid) {
-    attack.modifiers.push({ source: statusId, kind: 'avoid' });
-    log(state, `is hidden by ${statusId}`, player);
     return;
   }
 
@@ -944,6 +1036,24 @@ function resolveAttack(state: GameState, lookup: HeroLookup): void {
   const attack = state.attack;
   if (!attack) throw new Error('No attack to resolve');
 
+  /*
+   * Shadows and its like are not spent and are not chosen: a player holding
+   * one simply takes no damage from an opponent's attack, and makes no
+   * defence. It applies to the attack only — damage from outside one is not
+   * "damage as a result of an opponent's Offensive Roll Phase" — so a window
+   * goes through it.
+   */
+  if (!attack.window) {
+    const hidden = state.players[attack.defender];
+    for (const statusId of Object.keys(hidden.statuses)) {
+      if (statusCount(hidden, statusId) === 0) continue;
+      if (!behaviourOf(statusId).autoAvoid) continue;
+      if (attack.modifiers.some((m) => m.kind === 'avoid' && m.source === statusId)) continue;
+      attack.modifiers.push({ source: statusId, kind: 'avoid' });
+      log(state, `is hidden by ${statusId}`, hidden);
+    }
+  }
+
   const result = resolveDamage(attack.incoming, attack.type, attack.modifiers);
   result.steps.forEach((step) => log(state, step));
 
@@ -965,9 +1075,16 @@ function resolveAttack(state: GameState, lookup: HeroLookup): void {
   state.attack = null;
   if (state.phase === 'gameOver') return;
 
+  // Everything the attacker has earned back, from whatever source.
+  const back = result.reflected + (attack.damageBack?.amount ?? 0);
+  const backFrom = attack.damageBack?.source ?? attack.abilityName;
+
   // A window was a pause, not an attack: the turn picks up where it was, or
   // finishes if the window was what was holding it open.
   if (attack.window) {
+    // Already outside an attack, so there is no second window to open: it
+    // lands, typeless, as it would have done had it been dealt on the spot.
+    if (back > 0) dealDamage(state, attack.attacker, back, 'typeless');
     if (attack.resumeEndTurn) finishEndTurn(state, lookup);
     return;
   }
@@ -981,16 +1098,17 @@ function resolveAttack(state: GameState, lookup: HeroLookup): void {
   }
 
   /*
-   * Damage sent back by a Defensive Ability or by Retribution comes from
-   * outside an Attack, so it is typeless and its target may answer it too.
+   * Damage sent back by a Defensive Ability, by a card played in defence or
+   * by Retribution comes from outside the Attack, so it is typeless and its
+   * target may answer it too.
    *
    * Opened last, after this attack is cleared away and the Roll Phase has
    * ended: the window does not depend on the phase, so ending the phase first
    * means settling it cannot leave the attacker's turn stuck in a Defensive
    * Roll Phase that is already over.
    */
-  if (result.reflected > 0) {
-    openDamageWindow(state, attack.attacker, result.reflected, attack.abilityName);
+  if (back > 0) {
+    openDamageWindow(state, attack.attacker, back, backFrom);
   }
 }
 
@@ -1287,7 +1405,7 @@ function finishCard(
     if (attack) attack.modifiers.push({ source, kind: 'preventFraction', divisor });
   }
   if (outcome.damageToAttacker > 0 && attack) {
-    applyDamage(state, lookup, attack.attacker, outcome.damageToAttacker);
+    sendDamageBack(attack, outcome.damageToAttacker, source);
   }
 }
 
@@ -1474,6 +1592,26 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
 
   const player = next.players[next.active];
 
+  /*
+   * A declared attack holds the table. Only the answers to it are allowed
+   * through — the attacker must not be able to roll again or walk away while
+   * an opponent still has a card in hand for them.
+   */
+  if (next.response) {
+    const answering =
+      action.type === 'playCard' ||
+      action.type === 'passResponse' ||
+      action.type === 'answerChoice' ||
+      action.type === 'rollPending' ||
+      action.type === 'rerollPending' ||
+      action.type === 'keepPending' ||
+      action.type === 'confirmPending' ||
+      action.type === 'spendStatus';
+    if (!answering) {
+      throw new Error(`${next.response.abilityName} is waiting to be answered`);
+    }
+  }
+
   switch (action.type) {
     case 'rollDice': {
       const roll = next.roll;
@@ -1504,6 +1642,16 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
     case 'activateAbility':
       activateOffensive(next, lookup, action.abilityId, action.tierIndex);
       break;
+
+    case 'passResponse': {
+      const waiting = next.response;
+      if (!waiting) throw new Error('Nothing is waiting to be answered');
+      const seat = next.players.findIndex((p) => p.id === action.playerId);
+      if (seat < 0) throw new Error('No such player');
+      waiting.waiting = waiting.waiting.filter((i) => i !== seat);
+      // Whether that was the last word is settled below, in one place.
+      break;
+    }
 
     case 'skipAttack':
       log(next, 'does not activate an Offensive Ability', player);
@@ -1597,6 +1745,23 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
       break;
   }
 
+  /*
+   * A declared attack waits only while somebody can still answer it.
+   *
+   * Playing a card reopens the window — the rules let both sides go back and
+   * forth until everyone accepts the dice — and when the last opponent runs
+   * out of answers the attack goes ahead by itself rather than leaving the
+   * table with nothing legal to do.
+   */
+  if (next.response && next.pending.length === 0) {
+    const able = respondersTo(next, next.active, lookup);
+    next.response.waiting =
+      action.type === 'playCard'
+        ? able
+        : next.response.waiting.filter((seat) => able.includes(seat));
+    if (next.response.waiting.length === 0) resumeActivation(next, lookup);
+  }
+
   return next;
 }
 
@@ -1665,6 +1830,25 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
     return out;
   }
 
+  /*
+   * An attack has been declared and is waiting on the other side of the
+   * table. Only they may act — the attacker cannot push past them, which is
+   * the whole point of the pause.
+   */
+  const waiting = state.response;
+  if (waiting) {
+    for (const seat of waiting.waiting) {
+      out.push({ type: 'passResponse', playerId: state.players[seat].id });
+    }
+    const attackerId = state.players[state.active].id;
+    out.push(
+      ...cardActions(state, lookup).filter(
+        (o) => o.type === 'playCard' && o.playerId !== attackerId,
+      ),
+    );
+    return out;
+  }
+
   // Damage from outside an attack is waiting on its target. Nothing else may
   // happen until they have taken it or answered it.
   const window = state.attack?.window ? state.attack : null;
@@ -1673,7 +1857,10 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
     for (const statusId of Object.keys(target.statuses)) {
       if (statusCount(target, statusId) === 0) continue;
       const behaviour = behaviourOf(statusId);
-      if (behaviour.spendToPrevent || behaviour.spendToAvoid || behaviour.autoAvoid) {
+      // Not `autoAvoid`: Shadows is not spent, it simply applies, so offering
+      // it as something to click was both wrong and endless — each click
+      // stacked another modifier and the token never went anywhere.
+      if (behaviour.spendToPrevent || behaviour.spendToAvoid) {
         out.push({ type: 'spendStatus', playerId: target.id, statusId });
       }
     }
@@ -1772,8 +1959,10 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
               attack.incoming < behaviour.spendToBoost.minDamage
             );
           const usable =
+            // `autoAvoid` is deliberately absent: it is not spent and not
+            // chosen, it applies on its own when the attack resolves.
             (index === attack.defender &&
-              (behaviour.spendToPrevent || behaviour.spendToAvoid || behaviour.autoAvoid)) ||
+              (behaviour.spendToPrevent || behaviour.spendToAvoid)) ||
             (index === attack.attacker && boostable);
           if (usable) out.push({ type: 'spendStatus', playerId: p.id, statusId });
         }

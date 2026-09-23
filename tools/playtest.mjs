@@ -67,6 +67,9 @@ function settle(state, limit = 60) {
   for (let i = 0; i < limit; i++) {
     const options = legalActions(game, lookup);
     const pick =
+      // A declared attack waits on its opponents; wave it through so the
+      // ability underneath actually gets to resolve.
+      options.find((o) => o.type === 'passResponse') ??
       options.find((o) => o.type === 'rollPending') ??
       options.find((o) => o.type === 'confirmPending') ??
       options.find((o) => o.type === 'answerChoice') ??
@@ -259,7 +262,42 @@ function tryCard(hero, card) {
 
 function tryToken(hero, status) {
   const b = behaviourOf(status.id);
-  const spendable = b.spendToPrevent || b.spendToBoost || b.spendToAvoid || b.autoAvoid || b.spendFreely;
+  /*
+   * Shadows and its like are never spent: holding one is enough, and the
+   * attack simply fails to land. So the thing to check is not that it can be
+   * used but that it works — and that it is not offered as something to use,
+   * which it used to be, endlessly.
+   */
+  if (b.autoAvoid) {
+    let game = table(hero);
+    game.players[0].statuses[status.id] = 1;
+    game.attack = {
+      attacker: 1,
+      defender: 0,
+      abilityId: 'x',
+      abilityName: 'Test attack',
+      incoming: 9,
+      type: 'normal',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: true,
+    };
+    game.phase = 'defensiveRoll';
+
+    const offered = legalActions(game, lookup).some(
+      (o) => o.type === 'spendStatus' && o.statusId === status.id,
+    );
+    if (offered) report('token', hero.name, status.name, 'offered as a spend, but it is automatic');
+
+    const health = game.teams[0].health;
+    const after = reduce(game, { type: 'resolveAttack' }, lookup);
+    if (after.teams[0].health !== health) {
+      report('token', hero.name, status.name, 'did not take the attack off by itself');
+    }
+    return;
+  }
+
+  const spendable = b.spendToPrevent || b.spendToBoost || b.spendToAvoid || b.spendFreely;
   if (!spendable) return; // Upkeep and passive tokens are covered by the game audit.
 
   for (const asAttacker of [true, false]) {

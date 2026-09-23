@@ -299,3 +299,75 @@ describe('Blessing of Divinity', () => {
     expect(state.phase).toBe('gameOver');
   });
 });
+
+describe('Shadows', () => {
+  /*
+   * The printed token: "When a player with this token is damaged as a result
+   * of an opponent's Offensive Roll Phase, no damage is received and no
+   * defense is made." Nothing about spending it — it simply applies, and it
+   * is discarded once its holder has started and concluded a turn.
+   *
+   * It used to be offered as something to click, which is both wrong and
+   * unbounded: clicking it did not consume the token, so it could be clicked
+   * for ever, and a bot handed that option never got off the turn.
+   */
+  const attackOn = (state: GameState, defender: number): GameState => {
+    const next = structuredClone(state);
+    next.attack = {
+      attacker: defender === 0 ? 1 : 0,
+      defender,
+      abilityId: 'x',
+      abilityName: 'Test attack',
+      incoming: 7,
+      type: 'normal',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: true,
+    };
+    next.phase = 'defensiveRoll';
+    return next;
+  };
+
+  it('is never something to click', () => {
+    let state = game('shadow-thief');
+    state.players[0].statuses.shadows = 1;
+    state = attackOn(state, 0);
+    expect(canSpend(state, 0, 'shadows')).toBe(false);
+  });
+
+  it('takes the whole attack off by itself', () => {
+    let state = game('shadow-thief');
+    state.players[0].statuses.shadows = 1;
+    state = attackOn(state, 0);
+
+    const before = state.teams[0].health;
+    state = act(state, { type: 'resolveAttack' });
+
+    expect(state.teams[0].health).toBe(before);
+    // Still there: it is spent by the passing of a turn, not by being used.
+    expect(statusCount(state.players[0], 'shadows')).toBe(1);
+  });
+
+  it('does not hide its holder from damage dealt outside an attack', () => {
+    // Burn, a Defensive Ability hitting back, Retribution: none of these are
+    // damage "as a result of an opponent's Offensive Roll Phase".
+    let state = game('shadow-thief');
+    state.players[0].statuses.shadows = 1;
+    state.attack = {
+      attacker: 0,
+      defender: 0,
+      abilityId: '',
+      abilityName: 'End of turn',
+      incoming: 3,
+      type: 'typeless',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: true,
+      window: true,
+    };
+
+    const before = state.teams[0].health;
+    state = act(state, { type: 'resolveAttack' });
+    expect(state.teams[0].health).toBe(before - 3);
+  });
+});

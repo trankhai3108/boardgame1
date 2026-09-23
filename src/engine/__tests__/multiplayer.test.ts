@@ -15,6 +15,7 @@ import {
   type GameState,
 } from '../state';
 import { needsTargetingRoll, resolveTargetRoll } from '../targeting';
+import { activateThrough } from './support';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const act = (state: GameState, action: Action) => reduce(state, action, lookup);
@@ -137,7 +138,7 @@ describe('the Targeting Roll Phase in play', () => {
     game = act(game, { type: 'nextPhase' }); // -> offensiveRoll
     // Paladin sits at seat 0; force a small straight to activate Holy Attack.
     game.roll!.dice = [1, 2, 3, 4, 6].map((value, i) => ({ id: `d${i}`, value, kept: true }));
-    return act(game, { type: 'activateAbility', abilityId: 'holy-attack', tierIndex: 0 });
+    return activateThrough(game, 'holy-attack', 0);
   }
 
   it('stops for a targeting roll when two rivals are alive', () => {
@@ -224,6 +225,11 @@ function botAction(state: GameState): Action | null {
       options.find((a) => a.type === 'answerChoice') ??
       options[0]
     );
+  }
+
+  // A declared attack holds the table until every opponent has had their say.
+  if (state.response) {
+    return options.find((a) => a.type === 'passResponse') ?? options[0];
   }
 
   if (state.phase === 'targetingRoll') {

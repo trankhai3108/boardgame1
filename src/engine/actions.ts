@@ -20,6 +20,8 @@ export type Action =
   | { type: 'chooseDefense'; abilityId: string | null }
   /** Spend a status token while an attack is pending. */
   | { type: 'spendStatus'; playerId: string; statusId: string; optionId?: string }
+  /** "I have nothing to say to that attack." */
+  | { type: 'passResponse'; playerId: string }
   /** Apply the Final DMG Total and end the Roll Phase. */
   | { type: 'resolveAttack' }
   /** Main or Discard Phase: sell a card for CP. */

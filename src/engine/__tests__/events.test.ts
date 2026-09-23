@@ -3,6 +3,7 @@ import { HEROES } from '../../data/heroes';
 import { runBots } from '../bot';
 import { reduce, type HeroLookup } from '../reducer';
 import { createGame, type GameState } from '../state';
+import { activateThrough } from './support';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const step = (state: GameState, action: Parameters<typeof reduce>[1]) =>
@@ -57,7 +58,7 @@ describe('the table event channel', () => {
       { id: 'd3', value: 2, kept: true },
       { id: 'd4', value: 2, kept: true },
     ];
-    next = step(next, { type: 'activateAbility', abilityId: 'smack', tierIndex: 0 });
+    next = activateThrough(next, 'smack', 0);
     while (next.attack && !next.attack.defenseResolved) {
       next = step(next, { type: 'chooseDefense', abilityId: null });
     }

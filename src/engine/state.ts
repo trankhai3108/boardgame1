@@ -175,6 +175,17 @@ export interface PendingAttack {
    * answered the damage, so settling the window is what finishes the turn.
    */
   resumeEndTurn?: boolean;
+  /**
+   * Damage this attack has earned its attacker back — from a Defensive
+   * Ability, or from a card played in defence.
+   *
+   * Held here rather than dealt where it is worked out, because it comes from
+   * outside the attack being resolved: the rules make such damage typeless,
+   * and its target is owed the same chance to answer it that Retribution's
+   * reflected damage already gives them. Neither is possible while this
+   * attack still holds the table, so it waits until the attack is done.
+   */
+  damageBack?: { amount: number; source: string };
 }
 
 /* ------------------------------------------------------------------ */
@@ -263,6 +274,21 @@ export type TableEvent =
   | { kind: 'damage'; player: number; amount: number; type: DamageType }
   | { kind: 'heal'; player: number; amount: number };
 
+/** An attack waiting on the other side of the table to say their piece. */
+export interface PendingResponse {
+  abilityId: string;
+  abilityName: string;
+  tierIndex: number;
+  /**
+   * Seats that still owe an answer, in seat order.
+   *
+   * Kept on the state rather than worked out on demand so that everything
+   * downstream — the bot, the UI, the server — can see whose move it is
+   * without a hero lookup to tell it which cards are playable.
+   */
+  waiting: number[];
+}
+
 export interface GameState {
   mode: GameMode;
   players: PlayerState[];
@@ -286,6 +312,16 @@ export interface GameState {
   /** Extra Offensive Roll Phases owed to the active player by Stun. */
   extraOrp: number;
   rng: RngState;
+  /**
+   * An Offensive Ability the attacker has declared but not yet resolved,
+   * while their opponents take their last chance to answer it.
+   *
+   * Rulebook p.7: a Roll Phase card may be played "even after the dice have
+   * finished rolling ... before the game proceeds", and p.5 spells out what
+   * that is for — "dice may be altered to prevent an Ultimate from
+   * successfully activating".
+   */
+  response: PendingResponse | null;
   log: LogEntry[];
   /** What the last action did. See `TableEvent`. */
   events: TableEvent[];
@@ -389,6 +425,7 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
     extraOrp: 0,
     rng,
     log: [{ round: 1, phase: 'main1', message: `Game start (${MODES[mode].label})` }],
+    response: null,
     events: [],
     winner: null,
   };

@@ -141,4 +141,86 @@ describe('typeless damage', () => {
     expect(state.attack).toBeNull();
     expect(state.phase).toBe('main2');
   });
+
+  it('sends a Defensive Ability\'s damage back the same way Retribution does', () => {
+    // Serenity deals 1 dmg per FIST rolled. That damage is dealt outside the
+    // attack being resolved, so the rules make it typeless — it used to land
+    // on the dial the moment the defence resolved, typed as the attack, with
+    // the attacker given no say in it at all.
+    let state = game('paladin', 'monk');
+    state.attack = {
+      attacker: 0,
+      defender: 1,
+      abilityId: 'smack',
+      abilityName: 'Smack',
+      incoming: 4,
+      type: 'normal',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: false,
+    };
+    state.phase = 'defensiveRoll';
+
+    state = act(state, { type: 'chooseDefense', abilityId: 'serenity' });
+    state = act(state, { type: 'rollPending' });
+    // Four FISTs, so the Monk sends 4 back.
+    const step = state.pending[state.pending.length - 1];
+    step.dice = step.dice.map((d) => ({ ...d, value: 1 }));
+    state = act(state, { type: 'confirmPending' });
+
+    const attackerHealth = state.teams[0].health;
+    expect(state.attack?.damageBack?.amount).toBe(4);
+    // Not a point of it while the attack it answers is still on the table.
+    expect(state.teams[0].health).toBe(attackerHealth);
+
+    state = act(state, { type: 'resolveAttack' });
+
+    // It waits on the attacker, typeless, exactly as Retribution's does.
+    expect(state.attack?.window).toBe(true);
+    expect(state.attack?.defender).toBe(0);
+    expect(state.attack?.type).toBe('typeless');
+    expect(state.teams[0].health).toBe(attackerHealth);
+
+    state = act(state, { type: 'resolveAttack' });
+    expect(state.teams[0].health).toBe(attackerHealth - 4);
+  });
+
+  it('lets the attacker answer what a Defensive Ability sent back', () => {
+    // The point of the window: the attacker gets the same chance to answer
+    // this damage that any other player gets to answer damage aimed at them.
+    let state = game('paladin', 'monk');
+    state.players[0].hand.unshift('common-card-next-time#0');
+    state.players[0].cp = 9;
+    state.attack = {
+      attacker: 0,
+      defender: 1,
+      abilityId: 'smack',
+      abilityName: 'Smack',
+      incoming: 0,
+      type: 'normal',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: false,
+    };
+    state.phase = 'defensiveRoll';
+
+    state = act(state, { type: 'chooseDefense', abilityId: 'serenity' });
+    state = act(state, { type: 'rollPending' });
+    const step = state.pending[state.pending.length - 1];
+    step.dice = step.dice.map((d) => ({ ...d, value: 1 }));
+    state = act(state, { type: 'confirmPending' });
+    state = act(state, { type: 'resolveAttack' });
+
+    const attackerHealth = state.teams[0].health;
+    const answer = options(state).find(
+      (o) => o.type === 'playCard' && o.cardId === 'common-card-next-time#0',
+    );
+    expect(answer, 'the attacker may answer the damage aimed at them').toBeDefined();
+
+    state = act(state, answer!);
+    state = act(state, { type: 'resolveAttack' });
+
+    // Next Time! prevents 6, which is more than the 4 coming back.
+    expect(state.teams[0].health).toBe(attackerHealth);
+  });
 });

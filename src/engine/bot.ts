@@ -168,6 +168,13 @@ export function chooseBotAction(
     }
   }
 
+  /* --- an attack declared and waiting on an answer --- */
+  if (state.response) {
+    // The bot does not play mind games with dice manipulation; it waves the
+    // attack through so the turn keeps moving.
+    return pick('passResponse') ?? null;
+  }
+
   /* --- damage from outside an attack, waiting on its target --- */
   if (state.attack?.window) {
     // Worth a token only when it would stop a real dent.
@@ -321,6 +328,8 @@ export function seatToAct(state: GameState): number {
   if (step) return step.who;
   // So does damage from outside an attack: it waits on whoever is taking it.
   if (state.attack?.window) return state.attack.defender;
+  // And a declared attack waits on the opponents who may still answer it.
+  if (state.response && state.response.waiting.length > 0) return state.response.waiting[0];
   if (state.targeting?.chooser === 'defenders') return state.targeting.opponents[0];
   if (state.phase === 'defensiveRoll' && state.attack) {
     return state.attack.defenseResolved ? state.active : state.attack.defender;

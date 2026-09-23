@@ -14,6 +14,7 @@ import {
   type GameState,
   type PlayerState,
 } from '../state';
+import { activateThrough } from './support';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const act = (state: GameState, action: Action) => reduce(state, action, lookup);
@@ -42,6 +43,13 @@ function attackPending(seed = 7): GameState {
   let game = newGame(PALADIN, BARBARIAN, seed);
   for (let i = 0; i < 400 && !game.attack; i++) {
     const options = legalActions(game, lookup);
+    // A declared attack waits on the defender before it becomes a real one.
+    if (game.response) {
+      const pass = options.find((o) => o.type === 'passResponse');
+      if (!pass) break;
+      game = act(game, pass);
+      continue;
+    }
     const step = topPending(game);
     if (step) {
       const pick =
@@ -307,7 +315,7 @@ describe('sub-rolls inside an ability', () => {
       { id: 'd4', value: 5, kept: false },
     ];
 
-    game = act(game, { type: 'activateAbility', abilityId: 'death-blossom', tierIndex: 0 });
+    game = activateThrough(game, 'death-blossom', 0);
 
     const step = topPending(game);
     expect(step?.request.kind).toBe('roll');

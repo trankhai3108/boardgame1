@@ -51,6 +51,7 @@ const TRAY_ACTIONS = [
   'chooseDefense',
   'rollTarget',
   'chooseTarget',
+  'passResponse',
 ] as const;
 
 /**
@@ -95,6 +96,8 @@ function ActionBar({
         return t('ui.action.payKnockdown');
       case 'rollTarget':
         return t('ui.action.rollTarget');
+      case 'passResponse':
+        return t('ui.action.pass');
       case 'chooseTarget':
         return fill(t('ui.action.target'), { name: nameFor(option.target) });
       case 'chooseDefense': {
@@ -208,7 +211,11 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
 
   const actingPlayer = pending
     ? game.players[pending.who]
-    : attack && !attack.defenseResolved
+    : // A declared ability is waiting on the opponents who may still answer
+      // it, so the move belongs to the first of them, not to the attacker.
+      game.response && game.response.waiting.length > 0
+      ? game.players[game.response.waiting[0]]
+      : attack && !attack.defenseResolved
       ? game.players[attack.defender]
       : targeting?.chooser === 'defenders'
         ? game.players[targeting.opponents[0]]
@@ -287,6 +294,21 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
    */
   const stage = (
     <div className="stage">
+          {game.response ? (
+            <div className="attack-summary attack-summary--declared">
+              <div>
+                {fill(t('ui.play.declaredLine'), {
+                  attacker: active.name,
+                  ability: game.response.abilityName,
+                })}
+              </div>
+              <div className="attack-summary__note">
+                {fill(t('ui.play.declaredWaiting'), {
+                  names: game.response.waiting.map(nameFor).join(', '),
+                })}
+              </div>
+            </div>
+          ) : null}
 
           {targeting ? (
             <div className="attack-summary attack-summary--targeting">
