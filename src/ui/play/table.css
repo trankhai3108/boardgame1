@@ -1093,3 +1093,20 @@
 /* Damage from outside an attack: the same panel, in a calmer colour, because
    nobody is attacking anybody. */
 .attack-summary--window { border-color: #2c4254; background: #101b23; }
+
+/* The ways a token may be spent, when it offers more than one. */
+.rail__ways { display: flex; flex-direction: column; gap: 0.2rem; }
+
+.rail__way {
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.4rem;
+  border: 1px solid #4fd1c5;
+  background: #12262a;
+  color: #d8fbf6;
+  font: inherit;
+  font-size: 0.68rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rail__way:hover { background: #17343a; }

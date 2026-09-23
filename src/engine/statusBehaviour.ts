@@ -1,6 +1,16 @@
 import type { DamageModifier } from './damage';
 import type { Effect } from './types';
 
+/** One way a token may be cashed in outside an attack. */
+export interface SpendOption {
+  /** Stable id, so the interface can say which way is being taken. */
+  id: string;
+  label: string;
+  /** 'any' is any point in your own turn; 'roll' needs dice on the table. */
+  when: 'any' | 'roll';
+  effects: Effect[];
+}
+
 /**
  * What each status token actually *does*, as opposed to what its leaflet text
  * says. The engine consults this table; hero data only says which tokens a
@@ -22,11 +32,7 @@ export interface StatusBehaviour {
    * Phase, a Seedling re-rolls one of your own dice. `when` says where the
    * token may be cashed, and `effects` is what cashing it does.
    */
-  spendFreely?: {
-    /** 'any' is any point in your own turn; 'roll' needs dice on the table. */
-    when: 'any' | 'roll';
-    effects: Effect[];
-  };
+  spendFreely?: SpendOption[];
 
   /** Spend while your own attack's damage is pending. */
   spendToBoost?: {
@@ -40,6 +46,8 @@ export interface StatusBehaviour {
     rollAdd?: (roll: number) => number;
     /** Makes the attack undefendable rather than adding damage. */
     undefendable?: boolean;
+    /** On these die results the holder picks what the token does instead. */
+    rollChoice?: { on: number[]; options: { id: string; label: string }[] };
   };
 
   /** Spend and roll; damage is avoided entirely on these die results. */
@@ -96,16 +104,13 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
   accuracy: {
     spendToBoost: { undefendable: true },
   },
-  'blessing-of-divinity': {
-    preventDefeatSetHealth: 1,
-    manual: 'Does not prevent damage from an opponent’s Ultimate.',
-  },
+  // It refuses defeat from anything but an Ultimate, which nothing may refuse.
+  'blessing-of-divinity': { preventDefeatSetHealth: 1 },
 
   /* --- Barbarian --- */
-  stun: {
-    grantsExtraOrpToInflicter: true,
-    manual: 'While stunned the holder may take no actions of any kind.',
-  },
+  // The holder may take no action while somebody else is acting; `stunned`
+  // in the reducer is what enforces it.
+  stun: { grantsExtraOrpToInflicter: true },
   concussion: { skipIncome: true },
 
   /* --- Monk --- */
@@ -117,16 +122,20 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
   evasive: { spendToAvoid: { avoidOn: [1, 2] } },
   knockdown: { skipOrpUnlessPaid: 2 },
   cleanse: {
-    spendFreely: {
-      when: 'any',
-      effects: [
-        {
-          t: 'choose',
-          request: { pick: 'status', scope: 'own' },
-          effects: [{ t: 'removeStatus', target: 'chosen' }],
-        },
-      ],
-    },
+    spendFreely: [
+      {
+        id: 'cleanse',
+        label: 'Remove a token',
+        when: 'any',
+        effects: [
+          {
+            t: 'choose',
+            request: { pick: 'status', scope: 'own' },
+            effects: [{ t: 'removeStatus', target: 'chosen' }],
+          },
+        ],
+      },
+    ],
   },
 
   /* --- Moon Elf --- */
@@ -136,16 +145,14 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
 
   /* --- Pyromancer --- */
   burn: { upkeep: { damagePerToken: 2 } },
-  'fire-mastery': {
-    upkeep: { removeTokens: 1 },
-    manual: 'Fire Mastery increases the power of several abilities.',
-  },
+  // Several Pyromancer abilities read the count directly, through
+  // `perStatus` amounts; the token itself only burns down each Upkeep.
+  'fire-mastery': { upkeep: { removeTokens: 1 } },
 
   /* --- Shadow Thief --- */
-  shadows: {
-    autoAvoid: true,
-    manual: 'Discard after the holder starts and concludes a turn under its effects.',
-  },
+  // Discarded once its holder has started and concluded a turn under it,
+  // which `finishEndTurn` does.
+  shadows: { autoAvoid: true },
   'sneak-attack': {
     spendToBoost: { rollAdd: (roll) => roll },
   },
@@ -155,48 +162,84 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
   'delayed-poison': { endOfTurn: { damagePerToken: 3, removeTokens: 99 } },
   'smoke-bomb': { spendToAvoid: { avoidOn: [1, 2, 3] } },
   ninjutsu: {
-    spendToBoost: { rollAdd: (roll) => (roll <= 3 ? 1 : 2) },
-    manual: 'On a 6, choose instead to inflict Delayed Poison or become undefendable.',
+    spendToBoost: {
+      rollAdd: (roll) => (roll <= 3 ? 1 : 2),
+      rollChoice: {
+        on: [6],
+        options: [
+          { id: 'ninjutsu-damage', label: '+2 dmg' },
+          { id: 'ninjutsu-poison', label: 'Inflict Delayed Poison' },
+          { id: 'ninjutsu-undefendable', label: 'Make the attack undefendable' },
+        ],
+      },
+    },
   },
 
   /* --- Treant --- */
   seedling: {
-    spendFreely: {
-      when: 'roll',
-      effects: [
-        { t: 'choose', request: { pick: 'die', scope: 'own' }, effects: [{ t: 'rerollDie' }] },
-      ],
-    },
+    spendFreely: [
+      {
+        id: 'reroll',
+        label: 'Re-roll a die',
+        when: 'roll',
+        effects: [
+          { t: 'choose', request: { pick: 'die', scope: 'own' }, effects: [{ t: 'rerollDie' }] },
+        ],
+      },
+    ],
   },
   sapling: {
-    spendFreely: {
-      when: 'any',
-      effects: [
-        { t: 'heal', amount: 1 },
-        { t: 'gainCP', amount: 1 },
-      ],
-    },
-    manual: 'May instead be spent with 1 CP to draw a card.',
+    spendFreely: [
+      {
+        id: 'heal',
+        label: 'Heal 1 and gain 1 CP',
+        when: 'any',
+        effects: [
+          { t: 'heal', amount: 1 },
+          { t: 'gainCP', amount: 1 },
+        ],
+      },
+      {
+        id: 'draw',
+        label: 'Pay 1 CP and draw a card',
+        when: 'any',
+        effects: [
+          { t: 'gainCP', amount: -1 },
+          { t: 'drawCard', amount: 1 },
+        ],
+      },
+    ],
   },
   dryad: {
     spendToBoost: { add: 3 },
-    manual: 'May instead be spent to prevent an incoming negative status effect.',
+    spendFreely: [
+      {
+        id: 'ward',
+        label: 'Turn aside the next token',
+        when: 'any',
+        effects: [{ t: 'wardStatus', amount: 1 }],
+      },
+    ],
   },
   'barbed-vine': {
     damagePerExtraRollAttempt: { amount: 1, maxPerTurn: 2 },
   },
   wellspring: {
-    spendFreely: {
-      when: 'any',
-      effects: [
-        {
-          t: 'subRoll',
-          dice: 1,
-          outcomes: [],
-          total: [{ t: 'heal', amount: { perPip: 1, halve: true } }],
-        },
-      ],
-    },
+    spendFreely: [
+      {
+        id: 'heal',
+        label: 'Roll and heal half',
+        when: 'any',
+        effects: [
+          {
+            t: 'subRoll',
+            dice: 1,
+            outcomes: [],
+            total: [{ t: 'heal', amount: { perPip: 1, halve: true } }],
+          },
+        ],
+      },
+    ],
   },
 };
 

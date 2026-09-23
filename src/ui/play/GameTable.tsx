@@ -175,13 +175,19 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
     !game.players[index].isBot && (you < 0 || you === index);
   const myTurn = you < 0 ? !game.players[game.active].isBot : isWaitingOn(game, you);
 
-  const spendableFor = (index: number): Set<string> => {
-    const out = new Set<string>();
+  /*
+   * The ways this seat may spend each token it holds.
+   *
+   * A token can offer more than one — a Sapling is either health and CP or a
+   * card for a CP — so the rail needs the list, not just "spendable".
+   */
+  const spendableFor = (index: number): Map<string, (string | undefined)[]> => {
+    const out = new Map<string, (string | undefined)[]>();
     if (!controls(index)) return out;
     for (const option of options) {
-      if (option.type === 'spendStatus' && game.players[index].id === option.playerId) {
-        out.add(option.statusId);
-      }
+      if (option.type !== 'spendStatus') continue;
+      if (game.players[index].id !== option.playerId) continue;
+      out.set(option.statusId, [...(out.get(option.statusId) ?? []), option.optionId]);
     }
     return out;
   };
@@ -509,8 +515,13 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           }
           hit={hitOn(farSeat)}
           spendable={spendableFor(farSeat)}
-          onSpend={(statusId) =>
-            onAction({ type: 'spendStatus', playerId: game.players[farSeat].id, statusId })
+          onSpend={(statusId, optionId) =>
+            onAction({
+              type: 'spendStatus',
+              playerId: game.players[farSeat].id,
+              statusId,
+              optionId,
+            })
           }
         />
 
@@ -560,8 +571,13 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
           }
           hit={hitOn(nearSeat)}
           spendable={spendableFor(nearSeat)}
-          onSpend={(statusId) =>
-            onAction({ type: 'spendStatus', playerId: game.players[nearSeat].id, statusId })
+          onSpend={(statusId, optionId) =>
+            onAction({
+              type: 'spendStatus',
+              playerId: game.players[nearSeat].id,
+              statusId,
+              optionId,
+            })
           }
         />
       </div>

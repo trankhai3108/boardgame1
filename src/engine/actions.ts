@@ -19,7 +19,7 @@ export type Action =
   /** Defensive Roll Phase: activate a Defensive Ability, or decline with null. */
   | { type: 'chooseDefense'; abilityId: string | null }
   /** Spend a status token while an attack is pending. */
-  | { type: 'spendStatus'; playerId: string; statusId: string }
+  | { type: 'spendStatus'; playerId: string; statusId: string; optionId?: string }
   /** Apply the Final DMG Total and end the Roll Phase. */
   | { type: 'resolveAttack' }
   /** Main or Discard Phase: sell a card for CP. */

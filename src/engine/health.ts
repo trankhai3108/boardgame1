@@ -45,7 +45,10 @@ export function dealDamage(
 
   if (team.health <= 0) {
     const rescue = behaviourOf('blessing-of-divinity').preventDefeatSetHealth;
-    if (rescue !== undefined && statusCount(player, 'blessing-of-divinity') > 0) {
+    // An Ultimate cannot be prevented or avoided by anything, and refusing to
+    // be defeated by it is both.
+    const refusable = type !== 'ultimate';
+    if (refusable && rescue !== undefined && statusCount(player, 'blessing-of-divinity') > 0) {
       removeStatus(player, 'blessing-of-divinity', 1);
       team.health = rescue;
       say(`Blessing of Divinity: health set to ${rescue}`);

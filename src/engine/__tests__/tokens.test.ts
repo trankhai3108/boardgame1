@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HEROES } from '../../data/heroes';
+import { emptyOutcome, resolveEffects } from '../effects';
+import { dealDamage } from '../health';
 import { legalActions, reduce, type HeroLookup } from '../reducer';
 import { STATUS_BEHAVIOUR } from '../statusBehaviour';
 import { createGame, statusCount, topPending, type GameState } from '../state';
@@ -210,5 +212,90 @@ describe('the behaviour table', () => {
       if (!doesSomething) unusable.push(id);
     }
     expect(unusable, `tokens the engine cannot act on: ${unusable.join(', ')}`).toHaveLength(0);
+  });
+});
+
+describe('tokens with more than one use', () => {
+  it('lets a Sapling be cashed for health and CP, or for a card', () => {
+    const state = game('treant');
+    state.players[0].statuses.sapling = 2;
+
+    const ways = legalActions(state, lookup)
+      .filter((o) => o.type === 'spendStatus' && o.statusId === 'sapling')
+      .map((o) => (o.type === 'spendStatus' ? o.optionId : undefined));
+    expect(ways).toEqual(['heal', 'draw']);
+
+    const drawn = act(state, {
+      type: 'spendStatus',
+      playerId: state.players[0].id,
+      statusId: 'sapling',
+      optionId: 'draw',
+    });
+    expect(drawn.players[0].hand.length).toBe(state.players[0].hand.length + 1);
+    expect(drawn.players[0].cp).toBe(state.players[0].cp - 1);
+  });
+
+  it('lets a Dryad be spent to turn a token aside instead of for damage', () => {
+    let state = game('treant');
+    state.players[0].statuses.dryad = 1;
+
+    expect(canSpend(state, 0, 'dryad')).toBe(true);
+    state = act(state, {
+      type: 'spendStatus',
+      playerId: state.players[0].id,
+      statusId: 'dryad',
+      optionId: 'ward',
+    });
+    expect(state.players[0].statusWard).toBe(1);
+  });
+});
+
+describe('a ward', () => {
+  it('turns aside what an opponent inflicts, and not what you give yourself', () => {
+    const state = game('treant');
+    state.players[1].statusWard = 1;
+
+    const ctx = {
+      state,
+      self: 0,
+      target: 1,
+      hero: HEROES.treant,
+      usedDice: [],
+    };
+    resolveEffects(
+      [{ t: 'gainStatus', status: 'barbed-vine', target: 'opponent' }],
+      ctx,
+      emptyOutcome(),
+    );
+    expect(statusCount(state.players[1], 'barbed-vine')).toBe(0);
+    expect(state.players[1].statusWard).toBe(0);
+
+    // The next one gets through.
+    resolveEffects(
+      [{ t: 'gainStatus', status: 'barbed-vine', target: 'opponent' }],
+      ctx,
+      emptyOutcome(),
+    );
+    expect(statusCount(state.players[1], 'barbed-vine')).toBe(1);
+  });
+});
+
+describe('Blessing of Divinity', () => {
+  it('refuses an ordinary defeat', () => {
+    const state = game('paladin');
+    state.players[0].statuses['blessing-of-divinity'] = 1;
+    state.teams[0].health = 2;
+    dealDamage(state, 0, 10, 'normal');
+    expect(state.teams[0].health).toBe(1);
+    expect(state.phase).not.toBe('gameOver');
+  });
+
+  it('cannot refuse an Ultimate, which nothing may', () => {
+    const state = game('paladin');
+    state.players[0].statuses['blessing-of-divinity'] = 1;
+    state.teams[0].health = 2;
+    dealDamage(state, 0, 10, 'ultimate');
+    expect(state.teams[0].health).toBe(0);
+    expect(state.phase).toBe('gameOver');
   });
 });

@@ -15,7 +15,9 @@
     "check:worker": "tsc --noEmit -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy",
     "audit": "vite-node tools/audit.mjs",
-    "audit:abilities": "vite-node tools/ability-audit.mjs"
+    "audit:abilities": "vite-node tools/ability-audit.mjs",
+    "audit:cards": "vite-node tools/card-audit.mjs",
+    "audit:tokens": "vite-node tools/token-audit.mjs"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",

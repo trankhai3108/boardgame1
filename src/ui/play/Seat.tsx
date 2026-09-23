@@ -54,8 +54,9 @@ export function Seat({
   you: number;
   /** Which end of the table this player sits at. */
   side: 'near' | 'far';
-  spendable: Set<string>;
-  onSpend: (statusId: string) => void;
+  /** Token id -> the option ids it may be spent as. */
+  spendable: Map<string, (string | undefined)[]>;
+  onSpend: (statusId: string, optionId?: string) => void;
   /** Damage this seat just took, which the board flinches from. */
   hit: number | null;
   /** True when the game is waiting on this player to move. */
@@ -240,8 +241,9 @@ function TokenRail({
 }: {
   game: GameState;
   index: number;
-  spendable: Set<string>;
-  onSpend: (statusId: string) => void;
+  /** Token id -> the option ids it may be spent as. */
+  spendable: Map<string, (string | undefined)[]>;
+  onSpend: (statusId: string, optionId?: string) => void;
 }) {
   const { t } = useI18n();
   const player = game.players[index];
@@ -262,7 +264,8 @@ function TokenRail({
         const def = findStatus(statusId, HERO_LIST);
         const count = statusCount(player, statusId);
         const Icon = STATUS_ICONS[statusId];
-        const canSpend = spendable.has(statusId);
+        const ways = spendable.get(statusId) ?? [];
+        const canSpend = ways.length > 0;
         const summary = def?.summary ?? behaviourOf(statusId).manual ?? '';
 
         return (
@@ -278,7 +281,7 @@ function TokenRail({
               .filter(Boolean)
               .join(' ')}
             disabled={!canSpend}
-            onClick={() => onSpend(statusId)}
+            onClick={() => onSpend(statusId, ways[0])}
             data-token={statusId}
           >
             {Icon ? <Icon /> : null}
@@ -299,6 +302,26 @@ function TokenRail({
           </button>
         );
       })}
+
+      {/* A token that can be spent more than one way lists the ways: a
+          Sapling is either health and CP, or a card for a CP. */}
+      {[...spendable.entries()]
+        .filter(([, ways]) => ways.length > 1)
+        .map(([statusId, ways]) => (
+          <div key={`${statusId}-ways`} className="rail__ways">
+            {ways.map((optionId) => (
+              <button
+                key={optionId ?? 'only'}
+                type="button"
+                className="rail__way"
+                onClick={() => onSpend(statusId, optionId)}
+              >
+                {behaviourOf(statusId).spendFreely?.find((o) => o.id === optionId)?.label ??
+                  t('ui.action.spendToken')}
+              </button>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }

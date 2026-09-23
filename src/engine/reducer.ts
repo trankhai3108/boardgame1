@@ -723,7 +723,13 @@ function finishDefense(
 /* Spending status tokens against a pending attack                      */
 /* ------------------------------------------------------------------ */
 
-function spendStatus(state: GameState, lookup: HeroLookup, playerId: string, statusId: string): void {
+function spendStatus(
+  state: GameState,
+  lookup: HeroLookup,
+  playerId: string,
+  statusId: string,
+  optionId?: string,
+): void {
   const index = state.players.findIndex((p) => p.id === playerId);
   const player = state.players[index];
   if (index < 0) throw new Error('No such player');
@@ -733,14 +739,18 @@ function spendStatus(state: GameState, lookup: HeroLookup, playerId: string, sta
 
   // Tokens that answer nothing: Cleanse, a Sapling cashed in, Wellspring
   // rolled in a Main Phase, a Seedling spent over your own dice.
-  if (behaviour.spendFreely && canSpendFreely(state, index, behaviour.spendFreely.when)) {
+  const free = (behaviour.spendFreely ?? []).filter((o) =>
+    canSpendFreely(state, index, o.when),
+  );
+  const chosen = optionId ? free.find((o) => o.id === optionId) : free[0];
+  if (chosen) {
     removeStatus(player, statusId, 1);
-    log(state, `spends ${statusId}`, player);
+    log(state, `spends ${statusId}: ${chosen.label}`, player);
     const hero = heroOf(lookup, player);
     startRun(
       state,
       lookup,
-      behaviour.spendFreely.effects,
+      chosen.effects,
       { self: index, target: index, heroId: hero.id, usedDice: [], defensive: false, chosen: null },
       { kind: 'token', playerIndex: index, statusId },
       statusId,
@@ -870,12 +880,60 @@ function finishStatusRoll(state: GameState, lookup: HeroLookup, step: PendingSte
     return;
   }
 
-  if (behaviour.spendToBoost?.rollAdd) {
-    const amount = behaviour.spendToBoost.rollAdd(die);
-    attack.modifiers.push({ source: statusId, kind: 'add', amount });
-    log(state, `spends ${statusId}, rolled ${die}: +${amount} dmg`, player);
+  const boost = behaviour.spendToBoost;
+  if (!boost?.rollAdd) {
+    void lookup;
+    return;
   }
-  void lookup;
+
+  const amount = boost.rollAdd(die);
+
+  /*
+   * Some faces hand the decision back: Ninjutsu on a six may add its damage,
+   * inflict Delayed Poison, or make the attack undefendable instead.
+   */
+  if (boost.rollChoice?.on.includes(die)) {
+    const hero = heroOf(lookup, player);
+    startRun(
+      state,
+      lookup,
+      [
+        {
+          t: 'choose',
+          request: { pick: 'oneOf', options: boost.rollChoice.options },
+          effects: [
+            {
+              t: 'when',
+              cond: { chose: 'ninjutsu-poison' },
+              effects: [{ t: 'gainStatus', status: 'delayed-poison', target: 'opponent' }],
+              otherwise: [
+                {
+                  t: 'when',
+                  cond: { chose: 'ninjutsu-undefendable' },
+                  effects: [{ t: 'undefendable' }],
+                  otherwise: [{ t: 'attackBonus', amount }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      {
+        self: playerIndex,
+        target: attack.defender,
+        heroId: hero.id,
+        usedDice: [],
+        defensive: false,
+        chosen: null,
+      },
+      { kind: 'token', statusId, playerIndex },
+      statusId,
+    );
+    return;
+  }
+
+  attack.modifiers.push({ source: statusId, kind: 'add', amount });
+  log(state, `spends ${statusId}, rolled ${die}: +${amount} dmg`, player);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1466,7 +1524,7 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
 
     case 'spendStatus': {
       const at = next.players.findIndex((p) => p.id === action.playerId);
-      spendStatus(next, lookup, action.playerId, action.statusId);
+      spendStatus(next, lookup, action.playerId, action.statusId, action.optionId);
       if (at >= 0) next.events.push({ kind: 'spend', player: at, statusId: action.statusId });
       break;
     }
@@ -1635,9 +1693,9 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
   const acting = state.players[state.active];
   for (const [statusId, count] of Object.entries(acting.statuses)) {
     if (count <= 0) continue;
-    const free = behaviourOf(statusId).spendFreely;
-    if (free && canSpendFreely(state, state.active, free.when)) {
-      out.push({ type: 'spendStatus', playerId: acting.id, statusId });
+    for (const option of behaviourOf(statusId).spendFreely ?? []) {
+      if (!canSpendFreely(state, state.active, option.when)) continue;
+      out.push({ type: 'spendStatus', playerId: acting.id, statusId, optionId: option.id });
     }
   }
 
