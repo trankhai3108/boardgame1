@@ -26,6 +26,8 @@ export type Action =
   | { type: 'sellCard'; cardId: string }
   /** Play an action or upgrade card. Instants may come from any seat. */
   | { type: 'playCard'; cardId: string; playerId?: string }
+  /** Pay for one of a passive ability's options, e.g. Tithe's re-roll. */
+  | { type: 'usePassive'; abilityId: string; optionId: string }
   /** Pay the Knockdown tax so the Offensive Roll Phase is not skipped. */
   | { type: 'payKnockdown' }
 

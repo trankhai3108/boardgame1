@@ -820,3 +820,46 @@
 }
 
 .lobby__add-bot:hover { background: #1c1630; }
+
+/* Passive options sit above the phase buttons: available, not required. */
+.passives {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.passives__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.2rem;
+}
+
+.passives__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #6b4a96;
+  background: #1b1430;
+  color: #d9c4f5;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.passives__button:hover { background: #271a45; }
+
+.passives__cost {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #3a2a5c;
+  font-size: 0.75rem;
+}

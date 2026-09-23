@@ -99,6 +99,7 @@ export const TREANT: Hero = {
       level: 'I',
       tiers: [],
       text: ['During your *Upkeep Phase*, grow 1 *Spirit*.'],
+      passive: { upkeep: [{ t: 'growSpirit', amount: 1 }] },
     },
     {
       id: 'overgrowth',

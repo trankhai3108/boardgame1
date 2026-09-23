@@ -1,4 +1,4 @@
-import type { Ability, Card, Effect, Hero } from './types';
+import type { Ability, Card, Effect, Hero, PassiveOption } from './types';
 import type { Action } from './actions';
 import { resolveDamage, type DamageModifier, type DamageType } from './damage';
 import { makeDice, rerollUnkept } from './dice';
@@ -72,6 +72,91 @@ function runUpkeep(state: GameState, lookup: HeroLookup): void {
 
   // Upkeep damage accumulates and is applied simultaneously at the end of the phase.
   if (damage > 0) applyDamage(state, lookup, state.active, damage);
+
+  runUpkeepPassives(state, lookup);
+}
+
+/** Passive abilities that do something every Upkeep Phase, e.g. Fertilize. */
+function runUpkeepPassives(state: GameState, lookup: HeroLookup): void {
+  const index = state.active;
+  const player = state.players[index];
+  const hero = heroOf(lookup, player);
+
+  for (const ability of hero.abilities) {
+    const effects = ability.passive?.upkeep;
+    if (!effects?.length) continue;
+    startRun(
+      state,
+      lookup,
+      effects,
+      {
+        self: index,
+        target: opponentOf(state, index),
+        heroId: hero.id,
+        usedDice: [],
+        defensive: false,
+        chosen: null,
+      },
+      { kind: 'passive', abilityId: ability.id, optionId: 'upkeep', playerIndex: index },
+      ability.name,
+    );
+  }
+}
+
+/** Spends the CP a passive option costs and runs it. */
+function activatePassive(
+  state: GameState,
+  lookup: HeroLookup,
+  playerIndex: number,
+  abilityId: string,
+  optionId: string,
+): void {
+  const player = state.players[playerIndex];
+  const hero = heroOf(lookup, player);
+  const ability = findAbility(hero, abilityId);
+  const option = ability.passive?.options?.find((o) => o.id === optionId);
+  if (!option) throw new Error(`${ability.name} has no option "${optionId}"`);
+  if (option.window === 'roll' && !state.roll) throw new Error('No dice on the table');
+  if (player.cp < option.cp) throw new Error(`Not enough CP for ${option.label}`);
+
+  gainCp(player, -option.cp);
+  log(state, `pays ${option.cp} CP for ${ability.name}: ${option.label}`, player);
+
+  startRun(
+    state,
+    lookup,
+    option.effects,
+    {
+      self: playerIndex,
+      target: opponentOf(state, playerIndex),
+      heroId: hero.id,
+      usedDice: [],
+      defensive: false,
+      chosen: null,
+    },
+    { kind: 'passive', abilityId, optionId, playerIndex },
+    ability.name,
+  );
+}
+
+/** Passive options the given seat could pay for right now. */
+export function passiveOptionsFor(
+  state: GameState,
+  lookup: HeroLookup,
+  playerIndex: number,
+): { abilityId: string; option: PassiveOption }[] {
+  const player = state.players[playerIndex];
+  if (!player) return [];
+  const hero = heroOf(lookup, player);
+  const out: { abilityId: string; option: PassiveOption }[] = [];
+  for (const ability of hero.abilities) {
+    for (const option of ability.passive?.options ?? []) {
+      if (option.cp > player.cp) continue;
+      if (option.window === 'roll' && !state.roll) continue;
+      out.push({ abilityId: ability.id, option });
+    }
+  }
+  return out;
 }
 
 function runIncome(state: GameState): void {
@@ -302,6 +387,9 @@ function finishRun(
       finishCard(state, lookup, outcome, sink.playerIndex, ctx.target, source);
       break;
     case 'status':
+      break;
+    case 'passive':
+      finishCard(state, lookup, outcome, sink.playerIndex, ctx.target, source);
       break;
   }
 }
@@ -1242,6 +1330,10 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
       break;
     }
 
+    case 'usePassive':
+      activatePassive(next, lookup, next.active, action.abilityId, action.optionId);
+      break;
+
     case 'payKnockdown': {
       const cost = behaviourOf('knockdown').skipOrpUnlessPaid ?? 0;
       if (statusCount(player, 'knockdown') === 0) throw new Error('No Knockdown to pay off');
@@ -1339,6 +1431,12 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
     }
     out.push(...cardActions(state, lookup));
     return out;
+  }
+
+  // Passive options say "at any time", so they are offered in every phase of
+  // the owner's turn their window allows.
+  for (const { abilityId, option } of passiveOptionsFor(state, lookup, state.active)) {
+    out.push({ type: 'usePassive', abilityId, optionId: option.id });
   }
 
   switch (state.phase) {

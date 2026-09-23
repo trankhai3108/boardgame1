@@ -182,7 +182,9 @@ export type PendingSink =
   /** An action card mid-resolution. */
   | { kind: 'card'; cardId: string; cardName: string; playerIndex: number }
   /** A status token being spent, which resolves from the die it rolls. */
-  | { kind: 'status'; statusId: string; playerIndex: number };
+  | { kind: 'status'; statusId: string; playerIndex: number }
+  /** A passive ability option the owner paid for, e.g. Tithe's re-roll. */
+  | { kind: 'passive'; abilityId: string; optionId: string; playerIndex: number };
 
 /**
  * A step the game is waiting on one player to take.

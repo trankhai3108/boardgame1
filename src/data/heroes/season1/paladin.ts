@@ -46,6 +46,27 @@ export const PALADIN: Hero = {
         'You may re-roll 1 of your dice at any time for [[cp:1]] per re-roll.',
         'You may draw [[card:1]] at any time for [[cp:3]] per card.',
       ],
+      passive: {
+        options: [
+          {
+            id: 'tithe-reroll',
+            cp: 1,
+            label: 'Re-roll a die',
+            window: 'roll',
+            // The owner picks which die, the same way the cards do.
+            effects: [
+              { t: 'choose', request: { pick: 'die', scope: 'own' }, effects: [{ t: 'rerollDie' }] },
+            ],
+          },
+          {
+            id: 'tithe-draw',
+            cp: 3,
+            label: 'Draw a card',
+            window: 'any',
+            effects: [{ t: 'drawCard', amount: 1 }],
+          },
+        ],
+      },
     },
     {
       id: 'retaliate',

@@ -215,6 +215,35 @@ export interface AbilityTier {
   effects: Effect[];
 }
 
+/**
+ * Something a passive ability lets its owner pay for, at will.
+ *
+ * Tithe's two lines are the shape this exists for: "you may re-roll 1 die at
+ * any time for 1 CP" and "you may draw 1 card at any time for 3 CP".
+ */
+export interface PassiveOption {
+  /** Unique within the ability; also the translation key suffix. */
+  id: string;
+  /** CP the owner pays each time they use it. */
+  cp: number;
+  /** Short label, e.g. 'Re-roll a die'. Translated via `passive.<id>`. */
+  label: string;
+  effects: Effect[];
+  /**
+   * When it may be used. `roll` means only while the owner has dice on the
+   * table; `any` means any phase of their own turn.
+   */
+  window: 'any' | 'roll';
+}
+
+/** What a passive ability does, beyond printing its text on the board. */
+export interface PassiveSpec {
+  /** Resolved automatically during the owner's Upkeep Phase. */
+  upkeep?: Effect[];
+  /** Offered to the owner to pay for whenever their window is open. */
+  options?: PassiveOption[];
+}
+
 export interface Ability {
   /** Stable slot id — upgrade cards target this. */
   id: string;
@@ -226,6 +255,8 @@ export interface Ability {
   text?: string[];
   /** Text printed below every tier, applying to all of them. */
   footer?: string[];
+  /** For `kind: 'passive'`: what the ability actually does. */
+  passive?: PassiveSpec;
   /** True for the hero's Ultimate (5 of a kind). */
   ultimate?: boolean;
 }

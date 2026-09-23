@@ -37,4 +37,5 @@ export const K = {
   statusSummary: (statusId: string) => `status.${statusId}.summary`,
   statusText: (statusId: string) => `status.${statusId}.text`,
   dieLabel: (label: string) => `die.${label}`,
+  passiveOption: (optionId: string) => `passive.${optionId}`,
 } as const;

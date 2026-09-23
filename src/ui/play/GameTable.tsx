@@ -4,7 +4,7 @@ import type { Action } from '../../engine/actions';
 import { isWaitingOn } from '../../engine/authority';
 import { bestAbilities } from '../../engine/combos';
 import { resolveDamage } from '../../engine/damage';
-import { legalActions, type HeroLookup } from '../../engine/reducer';
+import { legalActions, passiveOptionsFor, type HeroLookup } from '../../engine/reducer';
 import {
   RULES,
   healthOf,
@@ -185,6 +185,14 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
     }
     return out;
   };
+
+  // Passive options are offered separately: they are not the next step, they
+  // are something the owner may pay for at any point in their turn.
+  const passives = useMemo(
+    () => (controls(game.active) ? passiveOptionsFor(game, lookup, game.active) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [game, you],
+  );
 
   const abilityOptions = options.filter((o) => o.type === 'activateAbility');
   const matches = game.roll ? bestAbilities(activeHero, game.roll.dice) : [];
@@ -390,6 +398,23 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
                   </button>
                 );
               })}
+            </div>
+          ) : null}
+
+          {myTurn && passives.length > 0 ? (
+            <div className="passives">
+              <span className="passives__label">{t('ui.play.passives')}</span>
+              {passives.map(({ abilityId, option }) => (
+                <button
+                  key={`${abilityId}-${option.id}`}
+                  type="button"
+                  className="passives__button"
+                  onClick={() => onAction({ type: 'usePassive', abilityId, optionId: option.id })}
+                >
+                  {t(K.passiveOption(option.id), option.label)}
+                  <span className="passives__cost">{option.cp} CP</span>
+                </button>
+              ))}
             </div>
           ) : null}
 
