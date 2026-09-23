@@ -92,7 +92,11 @@ export function Seat({
     >
       <Vitals game={game} index={index} you={you} />
       <div className="seat__middle">
-        <HeroBoard hero={hero} game={game} index={index} live={live} />
+        {/* Only the board scrolls. The buttons are the one thing that must
+            never be out of reach when it is your turn. */}
+        <div className="seat__board">
+          <HeroBoard hero={hero} game={game} index={index} live={live} />
+        </div>
         {actions}
       </div>
       <TokenRail game={game} index={index} spendable={spendable} onSpend={onSpend} />

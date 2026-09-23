@@ -89,12 +89,14 @@
 }
 
 .seat__middle {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.4rem;
   min-width: 0;
   min-height: 0;
 }
+
+.seat__board { min-height: 0; }
 
 /* The buttons sit with the player who has to press them, not in the middle. */
 .seat__actions {
@@ -689,9 +691,19 @@
    off or pushing the rest of the game off the screen. */
 .play-screen .seat { min-height: 0; overflow: hidden; }
 .play-screen .vitals { overflow: hidden; }
-.play-screen .seat__middle { overflow: auto; scrollbar-width: thin; }
+.play-screen .seat__board { overflow: auto; scrollbar-width: thin; }
 .play-screen .rail { overflow: auto; scrollbar-width: thin; }
-.play-screen .tray { margin: 0; }
+/*
+ * The tray grows with what is on it — five dice, then a list of the combos
+ * they activate — and left alone it takes that room from the two players,
+ * clipping the board of whoever is mid-turn. It gets a ceiling and scrolls.
+ */
+.play-screen .tray {
+  margin: 0;
+  max-height: clamp(7rem, 22vh, 17rem);
+  overflow: auto;
+  scrollbar-width: thin;
+}
 
 /* Slots size off the height the table has to spare, so the board fits. */
 .board { --slot: clamp(76px, 10vh, 190px); }
