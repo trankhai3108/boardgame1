@@ -48,7 +48,12 @@ export const MODES: Record<GameMode, ModeSpec> = {
 };
 
 /** King of the Hill starting health, by head count. */
-export const KOTH_HEALTH: Record<number, number> = { 3: 35, 4: 25, 5: 20 };
+export const KOTH_HEALTH: Record<number, number> = {
+  3: 30,
+  4: 25,
+  5: 20,
+  6: 20,
+};
 
 export function playerCountFor(mode: GameMode, kothPlayers = 4): number {
   if (mode === 'koth') return kothPlayers;

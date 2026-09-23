@@ -265,7 +265,8 @@ describe('ability targeting', () => {
 
     expect(game.players[0].statuses.retribution).toBe(1);
     expect(game.players[1].statuses.retribution).toBeUndefined();
-    expect(game.players[0].cp).toBe(RULES.startingCp + 3);
+    // Rulebook p.5: Retaliate gains 2 CP.
+    expect(game.players[0].cp).toBe(RULES.startingCp + 2);
   });
 
   it('inflicts negative status on the opponent', () => {

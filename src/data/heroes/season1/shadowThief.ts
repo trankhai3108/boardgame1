@@ -473,7 +473,7 @@ export const SHADOW_THIEF: Hero = {
       id: 'shadows',
       name: 'Shadows',
       polarity: 'positive',
-      stackLimit: 1,
+      stackLimit: 2,
       summary: 'A player with this token avoids damage',
       text:
         "When a player with this token is damaged as a result of an opponent's " +
@@ -486,7 +486,7 @@ export const SHADOW_THIEF: Hero = {
       id: 'sneak-attack',
       name: 'Sneak Attack',
       polarity: 'positive',
-      stackLimit: 1,
+      stackLimit: 2,
       summary: 'Spend to add 1 die to your Attack dmg',
       text:
         'After Attacking, a player with this token may spend it and roll 1 die to ' +
@@ -496,7 +496,7 @@ export const SHADOW_THIEF: Hero = {
       id: 'poison',
       name: 'Poison',
       polarity: 'negative',
-      stackLimit: 3,
+      stackLimit: 6,
       summary: 'Receive 1 dmg in Upkeep Phase',
       text:
         'A player afflicted with this token is dealt 1 dmg per Poison token during ' +

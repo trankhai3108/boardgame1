@@ -569,7 +569,7 @@ export const MONK: Hero = {
       id: 'chi',
       name: 'Chi',
       polarity: 'positive',
-      stackLimit: 5,
+      stackLimit: 11,
       summary: 'Spend these tokens to increase or reduce dmg',
       text:
         'Chi tokens may be spent at any time to prevent 1 incoming damage per token. ' +
@@ -583,7 +583,7 @@ export const MONK: Hero = {
       id: 'cleanse',
       name: 'Cleanse',
       polarity: 'positive',
-      stackLimit: 3,
+      stackLimit: 4,
       summary: 'Spend to remove a status effect token',
       text:
         'A player with this token may spend it at any time to remove a single status ' +

@@ -49,18 +49,27 @@ export const PYROMANCER: Hero = {
       tiers: [
         {
           requirement: { kind: 'symbols', symbols: { flame: 3 } },
-          text: ['Deal [[dmg:4]] dmg.'],
-          effects: [{ t: 'damage', amount: 4 }],
+          text: ['Deal [[dmg:4]] dmg.', 'Gain 1 *Fire Mastery* [[firemastery]].'],
+          effects: [
+            { t: 'damage', amount: 4 },
+            { t: 'gainStatus', status: 'fire-mastery', amount: 1 },
+          ],
         },
         {
           requirement: { kind: 'symbols', symbols: { flame: 4 } },
-          text: ['Deal [[dmg:6]] dmg.'],
-          effects: [{ t: 'damage', amount: 6 }],
+          text: ['Deal [[dmg:6]] dmg.', 'Gain 1 *Fire Mastery* [[firemastery]].'],
+          effects: [
+            { t: 'damage', amount: 6 },
+            { t: 'gainStatus', status: 'fire-mastery', amount: 1 },
+          ],
         },
         {
           requirement: { kind: 'symbols', symbols: { flame: 5 } },
-          text: ['Deal [[dmg:8]] dmg.'],
-          effects: [{ t: 'damage', amount: 8 }],
+          text: ['Deal [[dmg:8]] dmg.', 'Gain 1 *Fire Mastery* [[firemastery]].'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            { t: 'gainStatus', status: 'fire-mastery', amount: 1 },
+          ],
         },
       ],
       footer: ['Gain 1 *Fire Mastery* [[firemastery]].'],
@@ -545,7 +554,7 @@ export const PYROMANCER: Hero = {
       id: 'fire-mastery',
       name: 'Fire Mastery',
       polarity: 'positive',
-      stackLimit: 5,
+      stackLimit: 9,
       summary: 'Remove 1 token per turn',
       text:
         'A player with this token must "cool off" during their Upkeep Phase by ' +

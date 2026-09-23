@@ -481,7 +481,7 @@ export const BARBARIAN: Hero = {
       id: 'concussion',
       name: 'Concussion',
       polarity: 'negative',
-      stackLimit: 1,
+      stackLimit: 2,
       summary: 'Skip Income Phase',
       text:
         'A player afflicted with this token must skip their Income Phase and then ' +

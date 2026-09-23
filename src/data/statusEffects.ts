@@ -11,7 +11,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'crit',
     name: 'Crit',
     polarity: 'positive',
-    stackLimit: 1,
+    stackLimit: 2,
     summary: 'Spend to add 4 dmg to your Attack',
     text:
       'If a player with this token is dealing at least 5 dmg as a result of their ' +
@@ -21,7 +21,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'protect',
     name: 'Protect',
     polarity: 'positive',
-    stackLimit: 1,
+    stackLimit: 2,
     summary: 'Prevent 1/2 incoming damage',
     text:
       'A player with this token may spend it at any time to prevent 1/2 incoming ' +
@@ -31,7 +31,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'accuracy',
     name: 'Accuracy',
     polarity: 'positive',
-    stackLimit: 1,
+    stackLimit: 2,
     summary: 'Spend to make your Attack undefendable',
     text:
       'A player with this token may spend it at the conclusion of their Offensive ' +
@@ -41,7 +41,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'evasive',
     name: 'Evasive',
     polarity: 'positive',
-    stackLimit: 3,
+    stackLimit: 5,
     summary: 'Spend & roll 1-2 to avoid damage',
     text:
       'When a player with this token receives damage, they may choose to spend it. ' +
@@ -53,7 +53,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'knockdown',
     name: 'Knockdown',
     polarity: 'negative',
-    stackLimit: 1,
+    stackLimit: 2,
     summary: 'Spend 2 CP or skip Offensive Roll Phase',
     text:
       'To remove this token, a player afflicted with it must spend 2 CP before the ' +
@@ -79,7 +79,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'burn',
     name: 'Burn',
     polarity: 'negative',
-    stackLimit: 1,
+    stackLimit: 4,
     summary: 'Receive 2 dmg in Upkeep Phase',
     text:
       'A player afflicted with this token receives 2 dmg during their Upkeep Phase. ' +
@@ -89,7 +89,7 @@ export const SHARED_STATUS_EFFECTS: Record<string, StatusEffect> = {
     id: 'retribution',
     name: 'Retribution',
     polarity: 'positive',
-    stackLimit: 1,
+    stackLimit: 2,
     summary: 'Spend when Attacked to deal 1/2 dmg back',
     text:
       "This token may be spent after being Attacked as a result of an opponent's " +

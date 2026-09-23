@@ -99,10 +99,10 @@ export const PALADIN: Hero = {
       tiers: [
         {
           requirement: { kind: 'symbols', symbols: { helmet: 3, prayer: 1 } },
-          text: ['A chosen player gains *Retribution* [[retribution]].', 'Gain [[cp:3]].'],
+          text: ['A chosen player gains *Retribution* [[retribution]].', 'Gain [[cp:2]].'],
           effects: [
             { t: 'gainStatus', status: 'retribution', target: 'chosenPlayer' },
-            { t: 'gainCP', amount: 3 },
+            { t: 'gainCP', amount: 2 },
           ],
         },
       ],
@@ -264,10 +264,10 @@ export const PALADIN: Hero = {
         {
           requirement: { kind: 'straight', length: 4 },
           requirementLabel: 'SMALL STRAIGHT',
-          text: ['Heal [[heal:1]].', 'Deal [[dmg:6]] dmg.'],
+          text: ['Heal [[heal:1]].', 'Deal [[dmg:5]] dmg.'],
           effects: [
             { t: 'heal', amount: 1 },
-            { t: 'damage', amount: 6 },
+            { t: 'damage', amount: 5 },
           ],
         },
         {
@@ -349,7 +349,7 @@ export const PALADIN: Hero = {
         {
           requirement: { kind: 'symbols', symbols: { life: 2 } },
           text: [
-            'Heal [[heal:1]] \u00d7 [[life]] & roll [[die:2]]:',
+            'Heal [[heal:1]] \u00d7 [[life]] & roll [[die:1]]:',
             'On [[sword]], gain *Crit* [[crit]].',
             'On [[helmet]], gain *Protect* [[protect]].',
             'On [[life]], draw [[card:1]].',
@@ -359,7 +359,7 @@ export const PALADIN: Hero = {
             { t: 'heal', amount: { perSymbol: { life: 1 } } },
             {
               t: 'subRoll',
-              dice: 2,
+              dice: 1,
               outcomes: [
                 { on: 'sword', effects: [{ t: 'gainStatus', status: 'crit' }] },
                 { on: 'helmet', effects: [{ t: 'gainStatus', status: 'protect' }] },

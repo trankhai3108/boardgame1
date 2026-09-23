@@ -439,29 +439,44 @@ export const MOON_ELF: Hero = {
           requirement: { kind: 'defenseRoll', dice: 5 },
           requirementLabel: 'DEFENSE ROLL 5',
           text: [
-            'On [[foot]], prevent 1/2 dmg *(rounded up)*.',
-            'For every [[arrow]], deal [[dmg:1]] dmg.',
+            'On [[foot]][[foot]], prevent 1/2 the incoming dmg *(rounded up)*.',
+            'For every 2 × [[arrow]], deal [[dmg:1]].',
           ],
           effects: [
             {
               t: 'subRoll',
               dice: 5,
               outcomes: [
-                { on: 'arrow', effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
-                { on: 'foot', effects: [{ t: 'preventFraction', divisor: 2 }] },
+                /*
+                 * Rulebook p.10, worked example: the Elf rolls one Bow and
+                 * four Feet, prevents half the damage and deals nothing back.
+                 * So the halving wants two Feet and happens once however many
+                 * more she rolls, and a lone Bow deals nothing — it is one
+                 * damage per pair, not per Bow.
+                 */
+                { on: 'foot', atLeast: 2, effects: [{ t: 'preventFraction', divisor: 2 }] },
+                { on: 'arrow', atLeast: 2, effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                { on: 'arrow', atLeast: 4, effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
               ],
             },
           ],
         },
       ],
       upgrades: {
+        /*
+         * Not attested. The rulebook prints level I only, and the project the
+         * other heroes' upgrades came from has nothing past it for this slot,
+         * so this adds the one clause the hero's own kit makes obvious — the
+         * shape Thick Skin II uses — rather than inventing numbers.
+         */
         II: [
           {
             requirement: { kind: 'defenseRoll', dice: 5 },
             requirementLabel: 'DEFENSE ROLL 5',
             text: [
-              'On [[foot]][[foot]], prevent half the incoming dmg *(rounded up)*.',
-              'Deal [[dmg:1]] for every 2 × [[arrow]].',
+              'On [[foot]][[foot]], prevent 1/2 the incoming dmg *(rounded up)*.',
+              'For every 2 × [[arrow]], deal [[dmg:1]].',
+              'On [[moon]][[moon]], gain *Evasive* [[evasive]].',
             ],
             effects: [
               {
@@ -469,9 +484,9 @@ export const MOON_ELF: Hero = {
                 dice: 5,
                 outcomes: [
                   { on: 'foot', atLeast: 2, effects: [{ t: 'preventFraction', divisor: 2 }] },
-                  // Once at two Bows and again at four: one damage per pair.
                   { on: 'arrow', atLeast: 2, effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
                   { on: 'arrow', atLeast: 4, effects: [{ t: 'damage', amount: 1, target: 'attacker' }] },
+                  { on: 'moon', atLeast: 2, effects: [{ t: 'gainStatus', status: 'evasive' }] },
                 ],
               },
             ],
@@ -509,7 +524,7 @@ export const MOON_ELF: Hero = {
       id: 'blind',
       name: 'Blind',
       polarity: 'negative',
-      stackLimit: 1,
+      stackLimit: 2,
       summary: 'On 1-2, fail Offensive Roll Phase',
       text:
         'The next time a player afflicted with this token concludes their Offensive ' +
@@ -520,7 +535,7 @@ export const MOON_ELF: Hero = {
       id: 'entangle',
       name: 'Entangle',
       polarity: 'negative',
-      stackLimit: 1,
+      stackLimit: 2,
       summary: 'Lose 1 Roll Attempt',
       text:
         'A player afflicted with this token gets 1 fewer Roll Attempts during their ' +
@@ -532,7 +547,7 @@ export const MOON_ELF: Hero = {
       id: 'targeted',
       name: 'Targeted',
       polarity: 'negative',
-      stackLimit: 1,
+      stackLimit: 3,
       summary: '+2 Incoming Attack dmg',
       text:
         'When a player afflicted with this token is Attacked by an opponent, the ' +
