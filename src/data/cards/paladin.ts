@@ -104,6 +104,14 @@ export const PALADIN_CARDS: Card[] = [
       'Roll 1 die: Prayer -> Gain 4 CP;',
       'Otherwise -> Draw 1 card.',
     ],
+    effects: [
+      {
+        t: 'subRoll',
+        dice: 1,
+        outcomes: [{ on: 'prayer', effects: [{ t: 'gainCP', amount: 4 }] }],
+        otherwise: [{ t: 'drawCard', amount: 1 }],
+      },
+    ],
     art: '/cards/paladin/paladin-card-gods-grace.webp',
   },
   {

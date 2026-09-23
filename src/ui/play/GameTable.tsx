@@ -195,7 +195,9 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   );
 
   const abilityOptions = options.filter((o) => o.type === 'activateAbility');
-  const matches = game.roll ? bestAbilities(activeHero, game.roll.dice) : [];
+  const matches = game.roll
+    ? bestAbilities(activeHero, game.roll.dice, game.players[game.roll.playerIndex].abilityLevels)
+    : [];
   const preview = attack ? resolveDamage(attack.incoming, attack.type, attack.modifiers) : null;
 
   const actingPlayer = pending

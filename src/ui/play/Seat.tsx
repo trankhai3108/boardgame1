@@ -75,7 +75,11 @@ export function Seat({
   // Only the seat actually holding the dice gets its combos marked.
   const live = useMemo(() => {
     if (!game.roll || game.roll.playerIndex !== index) return new Set<string>();
-    return new Set(bestAbilities(hero, game.roll.dice).map((m) => `${m.ability.id}:${m.tierIndex}`));
+    return new Set(
+      bestAbilities(hero, game.roll.dice, game.players[index].abilityLevels).map(
+        (m) => `${m.ability.id}:${m.tierIndex}`,
+      ),
+    );
   }, [game.roll, hero, index]);
 
   const classes = [
@@ -186,11 +190,19 @@ function HeroBoard({
     >
       {/* No width is passed: the stylesheet sizes every slot from the room
           the table has to spare, so the board fits the screen it is on. */}
-      <AbilityCard ability={ability} heroId={hero.id} />
+      <AbilityCard
+        ability={ability}
+        heroId={hero.id}
+        level={player.abilityLevels[ability.id] ?? ability.level}
+      />
       {/* A readable copy while the pointer is on it. Fixed, so the board's
           own scrolling cannot clip it. */}
       <div className="zoom" aria-hidden="true">
-        <AbilityCard ability={ability} heroId={hero.id} />
+        <AbilityCard
+        ability={ability}
+        heroId={hero.id}
+        level={player.abilityLevels[ability.id] ?? ability.level}
+      />
       </div>
       <span className="board__level">{player.abilityLevels[ability.id] ?? ability.level}</span>
       {isLive(ability) ? <span className="board__ready">{t('ui.play.ready')}</span> : null}

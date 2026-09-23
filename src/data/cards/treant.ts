@@ -104,8 +104,16 @@ export const TREANT_CARDS: Card[] = [
     effects: [
       { t: 'harvestSpirits', max: 3 },
       {
-        t: 'manual',
-        note: 'If you removed at least 2 Spirits, up to 2 players gain Wellspring.',
+        t: 'when',
+        cond: { spentAtLeast: 2 },
+        effects: [
+          { t: 'gainStatus', status: 'wellspring' },
+          {
+            t: 'choose',
+            request: { pick: 'player', optional: true },
+            effects: [{ t: 'gainStatus', status: 'wellspring', target: 'chosen' }],
+          },
+        ],
       },
     ],
     art: '/cards/treant/treant-treant-card-harvest.webp',

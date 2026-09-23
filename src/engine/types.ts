@@ -199,6 +199,12 @@ export type Effect =
   /* --- misc --- */
   /** Raise a status effect's stack limit for the rest of the game. */
   | { t: 'stackLimitBonus'; status: string; amount: number }
+  /**
+   * Turn aside the next `amount` negative tokens somebody tries to inflict on
+   * the target — Thick Skin II's "prevent 1 incoming status effect", and what
+   * a Dryad may be spent on instead of damage.
+   */
+  | { t: 'wardStatus'; amount: number; target?: Target }
   /** Spend any amount of CP, gaining `status` once per CP spent. */
   | { t: 'spendCpForStatus'; status: string }
   /** Anything not yet modelled: the engine surfaces it for manual resolution. */
@@ -213,7 +219,11 @@ export type Condition =
   /** The sub-roll just thrown totalled at least this much. */
   | { rollAtLeast: number }
   /** The player took this branch of the enclosing `pick: 'oneOf'` question. */
-  | { chose: string };
+  | { chose: string }
+  /** The spend just before this removed at least this many tokens. */
+  | { spentAtLeast: number }
+  /** The dice in context show this many of the same number. */
+  | { ofAKind: number };
 
 /** Per-face results of a sub-roll, keyed by the symbol that came up. */
 export interface SubRollOutcome {
@@ -298,8 +308,18 @@ export interface Ability {
   id: string;
   name: string;
   kind: AbilityKind;
+  /** The level the slot starts the game at, which is always I. */
   level: AbilityLevel;
+  /** What the slot does at level I. */
   tiers: AbilityTier[];
+  /**
+   * What it does once it has been upgraded.
+   *
+   * An upgrade card raises the slot's level; these are the rules that level
+   * then plays by. A level with nothing here keeps the tiers below it, so a
+   * hero only needs entries for the levels that actually change.
+   */
+  upgrades?: Partial<Record<Exclude<AbilityLevel, 'I'>, AbilityTier[]>>;
   /** Passive abilities have no dice requirement, only text. */
   text?: string[];
   /** Text printed below every tier, applying to all of them. */

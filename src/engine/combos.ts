@@ -1,4 +1,4 @@
-import type { Ability, DiceRequirement, Die, Hero } from './types';
+import type { Ability, AbilityLevel, AbilityTier, DiceRequirement, Die, Hero } from './types';
 import { largestOfAKind, longestStraight, symbolOf, valueCounts } from './dice';
 
 /** One way the current dice can activate an ability. */
@@ -70,15 +70,40 @@ export function matchRequirement(
   }
 }
 
+/** The level each ability slot is currently at, keyed by ability id. */
+export type AbilityLevels = Readonly<Record<string, AbilityLevel>>;
+
+/**
+ * What an ability does at a given level.
+ *
+ * An upgrade card raises a slot's level; these are the rules that level plays
+ * by. A level with no entry of its own keeps the one below it, so a hero only
+ * carries the levels that actually change something.
+ */
+export function tiersAt(ability: Ability, level: AbilityLevel | undefined): AbilityTier[] {
+  if (level === 'III') return ability.upgrades?.III ?? ability.upgrades?.II ?? ability.tiers;
+  if (level === 'II') return ability.upgrades?.II ?? ability.tiers;
+  return ability.tiers;
+}
+
+/** The level a player's copy of a slot is at. */
+export function levelOf(ability: Ability, levels?: AbilityLevels): AbilityLevel {
+  return levels?.[ability.id] ?? ability.level;
+}
+
 /**
  * Every offensive ability the current dice can activate, including each
  * satisfied tier of a multi-tier ability.
  */
-export function availableAbilities(hero: Hero, dice: readonly Die[]): ComboMatch[] {
+export function availableAbilities(
+  hero: Hero,
+  dice: readonly Die[],
+  levels?: AbilityLevels,
+): ComboMatch[] {
   const out: ComboMatch[] = [];
   for (const ability of hero.abilities) {
     if (ability.kind !== 'offensive') continue;
-    ability.tiers.forEach((tier, tierIndex) => {
+    tiersAt(ability, levelOf(ability, levels)).forEach((tier, tierIndex) => {
       const usedDice = matchRequirement(hero, dice, tier.requirement);
       if (usedDice) out.push({ ability, tierIndex, usedDice });
     });
@@ -91,9 +116,13 @@ export function availableAbilities(hero: Hero, dice: readonly Die[]): ComboMatch
  * are always the stronger ones (Smack 3/4/5 swords, Holy Attack small/large
  * straight), so the last satisfied tier wins.
  */
-export function bestAbilities(hero: Hero, dice: readonly Die[]): ComboMatch[] {
+export function bestAbilities(
+  hero: Hero,
+  dice: readonly Die[],
+  levels?: AbilityLevels,
+): ComboMatch[] {
   const best = new Map<string, ComboMatch>();
-  for (const match of availableAbilities(hero, dice)) {
+  for (const match of availableAbilities(hero, dice, levels)) {
     best.set(match.ability.id, match);
   }
   return [...best.values()];

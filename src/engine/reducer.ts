@@ -2,7 +2,7 @@ import type { Ability, Card, Effect, Hero, PassiveOption } from './types';
 import type { Action } from './actions';
 import { resolveDamage, type DamageModifier, type DamageType } from './damage';
 import { makeDice, rerollUnkept } from './dice';
-import { bestAbilities, matchRequirement } from './combos';
+import { bestAbilities, levelOf, matchRequirement, tiersAt } from './combos';
 import {
   diceOnTable,
   emptyOutcome,
@@ -452,10 +452,14 @@ function activateOffensive(
   if (!roll) throw new Error('No dice to activate with');
 
   // Pick the requested tier, else the strongest one the dice satisfy.
+  // The slot plays by the rules of the level its owner has upgraded it to.
+  const levels = attacker.abilityLevels;
   const index =
-    tierIndex ?? bestAbilities(hero, roll.dice).find((m) => m.ability.id === abilityId)?.tierIndex;
+    tierIndex ??
+    bestAbilities(hero, roll.dice, levels).find((m) => m.ability.id === abilityId)?.tierIndex;
   if (index === undefined) throw new Error(`Dice do not activate ${ability.name}`);
-  const tier = ability.tiers[index];
+  const tier = tiersAt(ability, levelOf(ability, levels))[index];
+  if (!tier) throw new Error(`Dice do not activate ${ability.name}`);
   const usedDice = matchRequirement(hero, roll.dice, tier.requirement);
   if (!usedDice) throw new Error(`Dice do not activate ${ability.name}`);
 
@@ -537,7 +541,7 @@ function resolveActivation(
   const attacker = state.players[attackerIndex];
   const hero = heroOf(lookup, attacker);
   const ability = findAbility(hero, pending.abilityId);
-  const tier = ability.tiers[pending.tierIndex];
+  const tier = tiersAt(ability, levelOf(ability, attacker.abilityLevels))[pending.tierIndex];
 
   state.targeting = null;
 
@@ -669,7 +673,8 @@ function chooseDefense(state: GameState, lookup: HeroLookup, abilityId: string |
 
   // A Defensive Ability whose dice the engine used to roll behind the scenes is
   // now thrown by the defender: its sub-roll suspends and waits for them.
-  startRun(state, lookup, ability.tiers[0].effects, ctx, { kind: 'defense', abilityId }, ability.name);
+  const defenceTiers = tiersAt(ability, levelOf(ability, defender.abilityLevels));
+  startRun(state, lookup, defenceTiers[0].effects, ctx, { kind: 'defense', abilityId }, ability.name);
 }
 
 function finishDefense(
@@ -1643,7 +1648,7 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
         out.push({ type: 'rollDice' });
         for (const die of roll.dice) out.push({ type: 'toggleKeep', dieId: die.id });
       }
-      for (const match of bestAbilities(hero, roll.dice)) {
+      for (const match of bestAbilities(hero, roll.dice, state.players[roll.playerIndex].abilityLevels)) {
         out.push({
           type: 'activateAbility',
           abilityId: match.ability.id,

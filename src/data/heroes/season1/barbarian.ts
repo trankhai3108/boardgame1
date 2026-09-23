@@ -64,6 +64,74 @@ export const BARBARIAN: Hero = {
           effects: [{ t: 'damage', amount: 8 }],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 3 } },
+          text: ['Deal [[dmg:5]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 5 },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 4 } },
+          text: ['Deal [[dmg:7]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 7 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'undefendable' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 5 } },
+          text: ['Deal [[dmg:9]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 9 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'undefendable' }],
+            },
+          ],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 3 } },
+          text: ['Deal [[dmg:6]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 6 },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 4 } },
+          text: ['Deal [[dmg:8]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 8 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'undefendable' }],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 5 } },
+          text: ['Deal [[dmg:10]] dmg.'],
+          effects: [
+            { t: 'damage', amount: 10 },
+            {
+              t: 'when',
+              cond: { ofAKind: 4 },
+              effects: [{ t: 'undefendable' }],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'sturdy-blow',
@@ -77,6 +145,22 @@ export const BARBARIAN: Hero = {
           effects: [{ t: 'damage', amount: 4, undefendable: true }],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 2, pow: 2 } },
+          text: ['Deal [[dmg:5]] *undefendable* dmg.'],
+          effects: [{ t: 'damage', amount: 5, undefendable: true }],
+        },
+        ],
+        III: [
+        {
+          requirement: { kind: 'symbols', symbols: { sword: 2, pow: 2 } },
+          text: ['Deal [[dmg:6]] *undefendable* dmg.'],
+          effects: [{ t: 'damage', amount: 6, undefendable: true }],
+        },
+        ],
+      },
     },
     {
       id: 'fortitude',
@@ -100,6 +184,64 @@ export const BARBARIAN: Hero = {
           effects: [{ t: 'heal', amount: 6 }],
         },
       ],
+      upgrades: {
+        II: [
+        {
+          requirement: { kind: 'symbols', symbols: { life: 3 } },
+          text: ['Heal [[heal:5]].'],
+          effects: [
+            { t: 'heal', amount: 5 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [
+                {
+                  t: 'choose',
+                  request: { pick: 'status', scope: 'own', optional: true },
+                  effects: [{ t: 'removeStatus', target: 'chosen' }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { life: 4 } },
+          text: ['Heal [[heal:6]].'],
+          effects: [
+            { t: 'heal', amount: 6 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [
+                {
+                  t: 'choose',
+                  request: { pick: 'status', scope: 'own', optional: true },
+                  effects: [{ t: 'removeStatus', target: 'chosen' }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          requirement: { kind: 'symbols', symbols: { life: 5 } },
+          text: ['Heal [[heal:7]].'],
+          effects: [
+            { t: 'heal', amount: 7 },
+            {
+              t: 'when',
+              cond: { ofAKind: 3 },
+              effects: [
+                {
+                  t: 'choose',
+                  request: { pick: 'status', scope: 'own', optional: true },
+                  effects: [{ t: 'removeStatus', target: 'chosen' }],
+                },
+              ],
+            },
+          ],
+        },
+        ],
+      },
     },
     {
       id: 'overpower',
@@ -145,6 +287,16 @@ export const BARBARIAN: Hero = {
           effects: [{ t: 'damage', amount: 9 }],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 4 },
+            requirementLabel: 'SMALL STRAIGHT',
+            text: ['Deal [[dmg:8]] *undefendable* dmg.'],
+            effects: [{ t: 'damage', amount: 8, undefendable: true }],
+          },
+        ],
+      },
     },
     {
       id: 'crit-bash',
@@ -161,6 +313,26 @@ export const BARBARIAN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { pow: 3 } },
+            text: ['Inflict *Concussion* [[concussion]].', 'Then deal [[dmg:2]] *undefendable* dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'concussion', target: 'opponent' },
+              { t: 'damage', amount: 2, undefendable: true },
+            ],
+          },
+          {
+            requirement: { kind: 'symbols', symbols: { pow: 4 } },
+            text: ['Inflict *Stun* [[stun]].', 'Then deal [[dmg:7]] *undefendable* dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'stun', target: 'opponent' },
+              { t: 'damage', amount: 7, undefendable: true },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'reckless',
@@ -181,6 +353,19 @@ export const BARBARIAN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'straight', length: 5 },
+            requirementLabel: 'LARGE STRAIGHT',
+            text: ['Deal [[dmg:20]] dmg, receive [[dmg:5]] dmg in return.'],
+            effects: [
+              { t: 'damage', amount: 20 },
+              { t: 'damage', amount: 5, target: 'self' },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'thick-skin',
@@ -201,6 +386,28 @@ export const BARBARIAN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'defenseRoll', dice: 4 },
+            requirementLabel: 'DEFENSE ROLL 4',
+            text: [
+              'Heal [[heal:2]] × [[life]].',
+              'On [[life]][[life]], prevent 1 incoming status effect.',
+            ],
+            effects: [
+              {
+                t: 'subRoll',
+                dice: 4,
+                outcomes: [
+                  { on: 'life', effects: [{ t: 'heal', amount: 2 }] },
+                  { on: 'life', atLeast: 2, effects: [{ t: 'wardStatus', amount: 1 }] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     },
     {
       id: 'rage',
@@ -218,6 +425,18 @@ export const BARBARIAN: Hero = {
           ],
         },
       ],
+      upgrades: {
+        II: [
+          {
+            requirement: { kind: 'symbols', symbols: { pow: 5 } },
+            text: ['Inflict *Stun* [[stun]].', 'Deal [[dmg:20]] dmg.'],
+            effects: [
+              { t: 'gainStatus', status: 'stun', target: 'opponent' },
+              { t: 'damage', amount: 20 },
+            ],
+          },
+        ],
+      },
     },
   ],
 

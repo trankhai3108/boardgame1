@@ -1,4 +1,5 @@
-import type { Ability, DiceRequirement, DieSymbol, Hero } from '../../engine/types';
+import { tiersAt } from '../../engine/combos';
+import type { Ability, AbilityLevel, DiceRequirement, DieSymbol, Hero } from '../../engine/types';
 import { SYMBOL_ICONS } from '../card/iconRegistry';
 import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
@@ -51,12 +52,18 @@ export function AbilityCard({
   ability,
   heroId,
   width,
+  level,
 }: {
   ability: Ability;
   heroId: string;
   width?: number;
+  /** The level this copy of the slot has been upgraded to, if any. */
+  level?: AbilityLevel;
 }) {
   const { t, tList } = useI18n();
+  // An upgraded slot prints the rules of the level it is at, not the ones it
+  // started the game with.
+  const tiers = tiersAt(ability, level);
 
   const base = ability.ultimate
     ? 'dt-ability--ultimate'
@@ -67,7 +74,7 @@ export function AbilityCard({
         : '';
 
   // Three-tier abilities print requirement and result side by side.
-  const modifier = `${base}${ability.tiers.length >= 3 ? ' dt-ability--inline-tiers' : ''}`;
+  const modifier = `${base}${tiers.length >= 3 ? ' dt-ability--inline-tiers' : ''}`;
 
   const style = width ? ({ '--dt-ability-w': `${width}px` } as React.CSSProperties) : undefined;
 
@@ -86,7 +93,7 @@ export function AbilityCard({
         </>
       ) : null}
 
-      {ability.tiers.map((tier, i) => {
+      {tiers.map((tier, i) => {
         const label = comboLabel(tier.requirement, tier.requirementLabel);
         return (
           <div key={i} className="dt-ability__tier">

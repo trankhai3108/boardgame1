@@ -53,6 +53,11 @@ export interface EffectContext {
   defensive?: boolean;
   /** The answer bound by the enclosing `choose` effect. */
   chosen?: ChoiceAnswer;
+  /**
+   * How many tokens the last spend removed, for the cards that pay out on it
+   * — "if you removed at least 2 Spirits...".
+   */
+  lastSpend?: number;
 }
 
 /** Everything an ability contributed that the damage pipeline needs. */
@@ -350,7 +355,17 @@ export function runEffects(
 
       case 'gainStatus': {
         const who = playerFor(ctx, effect.target);
-        const amount = resolveAmount(effect.amount ?? 1, ctx.hero, ctx.usedDice, self);
+        let amount = resolveAmount(effect.amount ?? 1, ctx.hero, ctx.usedDice, self);
+
+        // A ward turns aside what somebody else is trying to put on you; it
+        // has nothing to say about tokens you give yourself.
+        const hostile = who !== self && !isFriendly(ctx.state, ctx.self, who);
+        while (hostile && amount > 0 && who.statusWard > 0) {
+          who.statusWard -= 1;
+          amount -= 1;
+          out.log.push(`${who.name} turns aside ${effect.status}`);
+        }
+
         if (amount > 0) {
           addStatus(who, effect.status, amount, limitFor(ctx.state, who, ctx.hero, effect.status));
           out.log.push(`${who.name} gains ${amount} ${effect.status}`);
@@ -512,6 +527,7 @@ export function runEffects(
             removed += 1;
           }
         }
+        ctx.lastSpend = removed;
         if (removed > 0) {
           const cp = (effect.cp ?? (effect.damage ? 0 : 1)) * removed;
           if (cp > 0) {
@@ -529,6 +545,7 @@ export function runEffects(
 
       case 'spendTokens': {
         const spent = Math.min(effect.max, statusCount(self, effect.status));
+        ctx.lastSpend = spent;
         if (spent > 0) {
           removeStatus(self, effect.status, spent);
           if (effect.damage) {
@@ -542,6 +559,13 @@ export function runEffects(
       }
 
       /* --- misc ---------------------------------------------------- */
+
+      case 'wardStatus': {
+        const who = playerFor(ctx, effect.target);
+        who.statusWard += effect.amount;
+        out.log.push(`${who.name} will turn aside the next ${effect.amount} token(s)`);
+        break;
+      }
 
       case 'stackLimitBonus': {
         const current = self.stackLimits[effect.status] ?? limitFor(ctx.state, self, ctx.hero, effect.status);
@@ -652,11 +676,22 @@ function growOnce(ctx: EffectContext, self: PlayerState, out: EffectOutcome): vo
   }
 }
 
+/** True when these two seats are on the same side. */
+function isFriendly(state: GameState, a: number, b: PlayerState): boolean {
+  return state.players[a].team === b.team;
+}
+
 /** Evaluates a `when` condition against the table as it stands. */
 function holds(ctx: EffectContext, cond: Condition): boolean {
   const self = ctx.state.players[ctx.self];
   if ('has' in cond) return statusCount(self, cond.has) >= (cond.min ?? 1);
   if ('chose' in cond) return ctx.chosen?.optionId === cond.chose;
+  if ('spentAtLeast' in cond) return (ctx.lastSpend ?? 0) >= cond.spentAtLeast;
+  if ('ofAKind' in cond) {
+    const counts = new Map<number, number>();
+    for (const die of ctx.usedDice) counts.set(die.value, (counts.get(die.value) ?? 0) + 1);
+    return [...counts.values()].some((n) => n >= cond.ofAKind);
+  }
   // The dice in context are the ones the sub-roll just threw.
   if ('rollAtLeast' in cond) return pipTotal(ctx.usedDice) >= cond.rollAtLeast;
   return (ctx.state.attack?.incoming ?? 0) >= cond.attackAtLeast;

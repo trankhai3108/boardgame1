@@ -108,6 +108,8 @@ export interface PlayerState {
   abilityLevels: Record<string, AbilityLevel>;
   /** Roll Attempts owed by a card, spent when the matching phase opens. */
   extraAttempts: { offensive: number; defensive: number };
+  /** Negative tokens still to be turned aside before any can stick. */
+  statusWard: number;
   /** Statuses gained this turn — Chi may not be spent for damage on these. */
   gainedThisTurn: string[];
   /** Barbed Vine damage already taken this turn, capped per its rules. */
@@ -347,6 +349,7 @@ export function createGame(setups: PlayerSetup[], options: GameOptions | number 
       stackLimits: {},
       abilityLevels: Object.fromEntries(hero.abilities.map((a) => [a.id, a.level])),
       extraAttempts: { offensive: 0, defensive: 0 },
+      statusWard: 0,
       gainedThisTurn: [],
       barbedVineDamageThisTurn: 0,
       hasTakenTurn: false,
