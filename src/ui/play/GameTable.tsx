@@ -118,6 +118,9 @@ function PlayerPanel({
           <span className="player-panel__name">
             {player.name}
             {isYou ? <span className="player-panel__you">{t('ui.play.you')}</span> : null}
+            {player.isBot ? (
+              <span className="player-panel__bot">{t('ui.play.bot')}</span>
+            ) : null}
           </span>
           <span className="player-panel__hero">{t(K.hero(hero.id, 'name'), hero.name)}</span>
         </span>
@@ -164,9 +167,13 @@ export function GameTable({ game, you, onAction, toolbar }: GameTableProps) {
   const targeting = game.targeting;
   const pending = topPending(game);
 
-  /** On a shared screen every seat is playable; online, only your own. */
-  const controls = (index: number) => you < 0 || you === index;
-  const myTurn = you < 0 || isWaitingOn(game, you);
+  /**
+   * On a shared screen every human seat is playable; online, only your own.
+   * A bot seat is never yours to click, wherever you are sitting.
+   */
+  const controls = (index: number) =>
+    !game.players[index].isBot && (you < 0 || you === index);
+  const myTurn = you < 0 ? !game.players[game.active].isBot : isWaitingOn(game, you);
 
   const spendableFor = (index: number): Set<string> => {
     const out = new Set<string>();

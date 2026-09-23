@@ -11,3 +11,4 @@ export * from './actions';
 export * from './reducer';
 export * from './targeting';
 export * from './authority';
+export * from './bot';

@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HERO_LIST, HEROES } from '../../data/heroes';
 import type { Action } from '../../engine/actions';
+import { chooseBotAction, seatToAct, waitingOnBot } from '../../engine/bot';
 import { reduce, type HeroLookup } from '../../engine/reducer';
 import {
   MODES,
@@ -14,6 +15,8 @@ import { GameTable } from './GameTable';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const MODE_IDS: GameMode[] = ['1v1', '2v2', '3v3', '2v2v2', 'koth'];
+/** Slow enough to watch a bot's turn, fast enough to test with. */
+const BOT_DELAY_MS = 550;
 
 /** Hot-seat: one screen, everyone takes their turn on it. */
 export function LocalPlay() {
@@ -21,6 +24,9 @@ export function LocalPlay() {
   const [mode, setMode] = useState<GameMode>('1v1');
   const [kothCount, setKothCount] = useState(3);
   const [picks, setPicks] = useState<string[]>(() => HERO_LIST.slice(0, 6).map((h) => h.id));
+  // Seat 0 is you by default; every other seat starts as a bot so a game can
+  // be started and watched without finding other people.
+  const [bots, setBots] = useState<boolean[]>(() => [false, true, true, true, true, true]);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6));
   const [game, setGame] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +42,7 @@ export function LocalPlay() {
             id: `p${i + 1}`,
             name: `Player ${i + 1}`,
             hero: HEROES[picks[i] ?? HERO_LIST[i % HERO_LIST.length].id],
+            isBot: bots[i] ?? false,
           })),
           { mode, seed },
         ),
@@ -43,7 +50,30 @@ export function LocalPlay() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [mode, picks, seats, seed]);
+  }, [bots, mode, picks, seats, seed]);
+
+  // One bot move per tick, so a bot turn plays out where you can follow it.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!game || !waitingOnBot(game)) return;
+    timer.current = setTimeout(() => {
+      setGame((current) => {
+        if (!current || !waitingOnBot(current)) return current;
+        const seat = seatToAct(current);
+        const action = chooseBotAction(current, seat, lookup);
+        if (!action) return current;
+        try {
+          return reduce(current, action, lookup);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+          return current;
+        }
+      });
+    }, BOT_DELAY_MS);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [game]);
 
   const dispatch = useCallback((action: Action) => {
     setGame((current) => {
@@ -96,8 +126,10 @@ export function LocalPlay() {
 
         <div className="seat-picker">
           {Array.from({ length: seats }, (_, i) => (
-            <label key={i} className="seat-picker__row">
-              <span className="seat-picker__seat">Player {i + 1}</span>
+            <div key={i} className="seat-picker__row">
+              <span className="seat-picker__seat">
+                {t('ui.play.seat')} {i + 1}
+              </span>
               <select
                 value={picks[i] ?? HERO_LIST[i % HERO_LIST.length].id}
                 onChange={(e) =>
@@ -114,7 +146,20 @@ export function LocalPlay() {
                   </option>
                 ))}
               </select>
-            </label>
+              <button
+                type="button"
+                className={`seat-picker__who${bots[i] ? ' seat-picker__who--bot' : ''}`}
+                onClick={() =>
+                  setBots((prev) => {
+                    const next = prev.slice();
+                    next[i] = !next[i];
+                    return next;
+                  })
+                }
+              >
+                {bots[i] ? t('ui.play.bot') : t('ui.play.human')}
+              </button>
+            </div>
           ))}
         </div>
 

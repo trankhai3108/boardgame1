@@ -240,6 +240,14 @@ export class GameClient {
     this.send({ t: 'setMode', mode });
   }
 
+  addBot(): void {
+    this.send({ t: 'addBot' });
+  }
+
+  removeBot(playerId: string): void {
+    this.send({ t: 'removeBot', playerId });
+  }
+
   start(): void {
     this.send({ t: 'start' });
   }
