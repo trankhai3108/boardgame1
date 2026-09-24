@@ -100,3 +100,64 @@ describe('answering an attack before it is activated', () => {
     }
   });
 });
+
+describe('a table with more than one opponent', () => {
+  /*
+   * At four and six players an attack can be answered by several people, and
+   * the rules give the say to each of them, not to whoever speaks first. One
+   * opponent waving the attack through must not spend everybody else's turn.
+   */
+  function threeWay(cards: string[]): GameState {
+    let game = createGame(
+      [
+        { id: 'p1', name: 'Attacker', hero: HEROES.barbarian },
+        { id: 'p2', name: 'Left', hero: HEROES['moon-elf'] },
+        { id: 'p3', name: 'Right', hero: HEROES.ninja },
+      ],
+      { mode: 'koth', seed: 5 },
+    );
+    for (const seat of [1, 2]) {
+      game.players[seat].cp = 15;
+      game.players[seat].hand = cards.map((id) => `${id}#${seat}`);
+    }
+    game = act(game, { type: 'nextPhase' });
+    game.roll!.dice = [1, 1, 1, 6, 6].map((value, i) => ({ id: `d${i}`, value, kept: true }));
+    return game;
+  }
+
+  it('waits on every opponent who could answer, not just the first', () => {
+    let game = threeWay(['common-card-give-hand']);
+    game = act(game, { type: 'activateAbility', abilityId: 'smack', tierIndex: 0 });
+
+    expect(game.response?.waiting).toEqual([1, 2]);
+    // Both are offered the answer; the attacker is not.
+    const passes = options(game).filter((o) => o.type === 'passResponse');
+    expect(passes.map((p) => p.type === 'passResponse' && p.playerId).sort()).toEqual(['p2', 'p3']);
+  });
+
+  it('still waits on the second opponent after the first has passed', () => {
+    let game = threeWay(['common-card-give-hand']);
+    game = act(game, { type: 'activateAbility', abilityId: 'smack', tierIndex: 0 });
+    game = act(game, { type: 'passResponse', playerId: 'p2' });
+
+    // One down, one to go: the attack must not have gone ahead yet.
+    expect(game.response).not.toBeNull();
+    expect(game.response?.waiting).toEqual([2]);
+    expect(game.attack).toBeNull();
+
+    // ...and only the one still owed a say may take it.
+    const passes = options(game).filter((o) => o.type === 'passResponse');
+    expect(passes.map((p) => p.type === 'passResponse' && p.playerId)).toEqual(['p3']);
+
+    game = act(game, { type: 'passResponse', playerId: 'p3' });
+    expect(game.response).toBeNull();
+  });
+
+  it('drops an opponent who has nothing left to say', () => {
+    // Only the left seat holds a card, so only they are ever asked.
+    let game = threeWay([]);
+    game.players[1].hand = ['common-card-give-hand#1'];
+    game = act(game, { type: 'activateAbility', abilityId: 'smack', tierIndex: 0 });
+    expect(game.response?.waiting).toEqual([1]);
+  });
+});
