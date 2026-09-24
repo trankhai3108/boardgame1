@@ -1150,8 +1150,16 @@ function finishEndTurn(state: GameState, lookup: HeroLookup): void {
   // Shadows is discarded once its holder has started and concluded a turn.
   if (statusCount(player, 'shadows') > 0) removeStatus(player, 'shadows', 1);
 
-  // Walk clockwise to the next player whose team is still standing. Seats are
-  // dealt so that this alternates teams, which is the rulebook's zigzag order.
+  beginNextTurn(state, lookup);
+}
+
+/**
+ * Hands the turn to the next player still standing.
+ *
+ * Walks clockwise. Seats are dealt so that this alternates teams, which is the
+ * rulebook's zigzag order.
+ */
+function beginNextTurn(state: GameState, lookup: HeroLookup): void {
   const n = state.players.length;
   let next = state.active;
   for (let step = 1; step <= n; step++) {
@@ -1165,6 +1173,30 @@ function finishEndTurn(state: GameState, lookup: HeroLookup): void {
   state.active = next;
   state.phase = 'upkeep';
   runUpkeep(state, lookup);
+}
+
+/**
+ * Ends the turn of a player who has just been knocked out of it.
+ *
+ * With three or more teams a defeat does not end the game, and the player who
+ * took it may be the one whose turn it is — damage sent back by a defence,
+ * Retribution, an end-of-turn token. They are out, so the rest of their turn
+ * is not theirs to take: it used to carry on, and they went on rolling,
+ * attacking and selling cards after leaving the game.
+ *
+ * Nothing is cut short to do it: a pending step, an attack being resolved or
+ * an unanswered window all finish first, and this runs once the table is quiet.
+ */
+function endTurnOfTheDefeated(state: GameState, lookup: HeroLookup): void {
+  if (state.phase === 'gameOver') return;
+  if (isAlive(state, state.active)) return;
+  if (state.pending.length > 0 || state.attack || state.response) return;
+
+  log(state, `is out, so their turn ends`, state.players[state.active]);
+  state.roll = null;
+  state.targeting = null;
+  state.extraOrp = 0;
+  beginNextTurn(state, lookup);
 }
 
 function nextPhase(state: GameState, lookup: HeroLookup): void {
@@ -1761,6 +1793,8 @@ export function reduce(state: GameState, action: Action, lookup: HeroLookup): Ga
         : next.response.waiting.filter((seat) => able.includes(seat));
     if (next.response.waiting.length === 0) resumeActivation(next, lookup);
   }
+
+  endTurnOfTheDefeated(next, lookup);
 
   return next;
 }

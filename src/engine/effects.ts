@@ -201,13 +201,25 @@ function playerFor(ctx: EffectContext, target: Target | undefined): PlayerState 
 function changeHealth(ctx: EffectContext, target: Target | undefined, delta: number): PlayerState {
   const index = indexFor(ctx, target);
   const team = teamOf(ctx.state, index);
+
+  /*
+   * Losing health here is still losing health.
+   *
+   * Recoil — Reckless and its like — used to come straight off the dial, which
+   * skipped everything that losing health means: the dial went below zero, no
+   * team was ever announced out, and a player could kill themselves without
+   * the game noticing anybody had won. It is damage from outside an attack, so
+   * it is typeless, which is also what lets a Blessing of Divinity refuse it.
+   */
+  if (delta < 0) {
+    dealDamage(ctx.state, index, -delta, 'typeless');
+    return ctx.state.players[index];
+  }
+
   const before = team.health;
   team.health = Math.min(team.maxHealth, team.health + delta);
   const moved = team.health - before;
   if (moved > 0) ctx.state.events.push({ kind: 'heal', player: index, amount: moved });
-  if (moved < 0) {
-    ctx.state.events.push({ kind: 'damage', player: index, amount: -moved, type: 'normal' });
-  }
   return ctx.state.players[index];
 }
 

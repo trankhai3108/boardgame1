@@ -60,3 +60,50 @@ describe('collateral damage', () => {
     expect(state.events.filter((e) => e.kind === 'damage')).not.toHaveLength(0);
   });
 });
+
+/*
+ * Recoil — Reckless and its like — is the other damage that leaves the attack
+ * pipeline. It used to come straight off the Health Dial, which skipped
+ * everything that losing health means: the dial went below zero, no team was
+ * ever announced out, and a player could kill themselves without the game
+ * noticing that somebody had won.
+ */
+const recoil: Effect[] = [{ t: 'damage', amount: 4, target: 'self' }];
+
+describe('recoil', () => {
+  it('never takes a Health Dial below zero', () => {
+    const state = game();
+    state.teams[0].health = 1;
+    resolveEffects(recoil, ctxFor(state), emptyOutcome());
+    expect(state.teams[0].health).toBe(0);
+  });
+
+  it('puts its own team out and ends the game, like any other damage', () => {
+    const state = game();
+    state.teams[0].health = 3;
+    resolveEffects(recoil, ctxFor(state), emptyOutcome());
+
+    expect(state.teams[0].health).toBe(0);
+    expect(state.log.some((l) => /is out$/.test(l.message))).toBe(true);
+    expect(state.phase).toBe('gameOver');
+    expect(state.winner).toBe(state.teams[1].id);
+  });
+
+  it('can be refused by a Blessing of Divinity, being typeless', () => {
+    const state = game();
+    state.teams[0].health = 2;
+    state.players[0].statuses['blessing-of-divinity'] = 1;
+    resolveEffects(recoil, ctxFor(state), emptyOutcome());
+
+    expect(state.teams[0].health).toBeGreaterThan(0);
+    expect(state.phase).not.toBe('gameOver');
+  });
+
+  it('reports itself so the table can show it', () => {
+    const state = game();
+    resolveEffects(recoil, ctxFor(state), emptyOutcome());
+    const hits = state.events.filter((e) => e.kind === 'damage');
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ player: 0, amount: 4 });
+  });
+});

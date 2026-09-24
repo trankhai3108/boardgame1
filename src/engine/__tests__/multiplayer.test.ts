@@ -14,6 +14,7 @@ import {
   type GameMode,
   type GameState,
 } from '../state';
+import { canAct } from '../authority';
 import { needsTargetingRoll, resolveTargetRoll } from '../targeting';
 import { activateThrough } from './support';
 
@@ -255,6 +256,70 @@ function botAction(state: GameState): Action | null {
   }
   return options.find((a) => a.type === 'nextPhase') ?? options[0];
 }
+
+describe('a player knocked out of their own turn', () => {
+  /*
+   * With three teams a defeat does not end the game, and the player who takes
+   * it can be the one whose turn it is: damage sent back by a defence,
+   * Retribution, recoil, an end-of-turn token. The rest of that turn is not
+   * theirs to take — they used to carry on rolling, attacking and selling
+   * cards after they had left the game.
+   */
+  it('loses the rest of it, and play moves on', () => {
+    let game = seat('2v2v2', 6, 11);
+    // P1's turn. An unanswered window of damage aimed at P1, enough to take
+    // their team out, which is what settling it will do.
+    game.teams[game.players[0].team].health = 2;
+    game.attack = {
+      attacker: 0,
+      defender: 0,
+      abilityId: '',
+      abilityName: 'Sent back',
+      incoming: 5,
+      type: 'typeless',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: true,
+      window: true,
+    };
+    expect(game.active).toBe(0);
+
+    game = act(game, { type: 'resolveAttack' });
+
+    // Their team is out, two teams are left, so the game goes on without them.
+    expect(game.teams[game.players[0].team].health).toBe(0);
+    expect(game.phase).not.toBe('gameOver');
+    expect(game.active).not.toBe(0);
+    expect(healthOf(game, game.active)).toBeGreaterThan(0);
+
+    // And nothing on the table still belongs to the turn that just ended.
+    expect(game.attack).toBeNull();
+    expect(game.response).toBeNull();
+    expect(game.pending).toHaveLength(0);
+  });
+
+  it('is never who the game waits on afterwards', () => {
+    let game = seat('2v2v2', 6, 11);
+    game.teams[game.players[0].team].health = 1;
+    game.attack = {
+      attacker: 0,
+      defender: 0,
+      abilityId: '',
+      abilityName: 'Sent back',
+      incoming: 9,
+      type: 'typeless',
+      modifiers: [],
+      afterDamage: [],
+      defenseResolved: true,
+      window: true,
+    };
+    game = act(game, { type: 'resolveAttack' });
+
+    for (const option of legalActions(game, lookup)) {
+      expect(canAct(game, 0, option), `${option.type} offered to a player who is out`).toBe(false);
+    }
+  });
+});
 
 describe('full games', () => {
   const tables: [GameMode, number][] = [
