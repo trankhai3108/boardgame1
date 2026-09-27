@@ -80,6 +80,12 @@ export interface StatusBehaviour {
   /** On concluding an Offensive Roll Phase, roll 1 die; these results fail it. */
   failOrpOn?: number[];
 
+  /**
+   * Nothing but the token's own rule may take it off: no Bye Bye!, no What
+   * Status?, no Transfer Status!.
+   */
+  immovable?: boolean;
+
   /** Instead of being defeated, health is set to this and the token removed. */
   preventDefeatSetHealth?: number;
 
@@ -105,7 +111,7 @@ export const STATUS_BEHAVIOUR: Record<string, StatusBehaviour> = {
     spendToBoost: { undefendable: true },
   },
   // It refuses defeat from anything but an Ultimate, which nothing may refuse.
-  'blessing-of-divinity': { preventDefeatSetHealth: 1 },
+  'blessing-of-divinity': { preventDefeatSetHealth: 1, immovable: true },
 
   /* --- Barbarian --- */
   // The holder may take no action while somebody else is acting; `stunned`

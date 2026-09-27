@@ -12,6 +12,7 @@ import type { DamageType } from './damage';
 import { symbolOf } from './dice';
 import { dealDamage } from './health';
 import { rollDie } from './rng';
+import { behaviourOf } from './statusBehaviour';
 import {
   addStatus,
   drawCards,
@@ -232,6 +233,36 @@ export function diceOnTable(state: GameState): Die[] {
   return [...(state.roll?.dice ?? []), ...(pending?.rolled ? pending.dice : [])];
 }
 
+/**
+ * Puts a token in front of a player, honouring whatever stands in the way.
+ *
+ * A ward turns aside what somebody else is trying to put on you; it has
+ * nothing to say about tokens you give yourself. Every path that hands out a
+ * token comes through here so the ward cannot be walked around.
+ */
+function grantStatus(
+  ctx: EffectContext,
+  who: PlayerState,
+  statusId: string,
+  amount: number,
+  out: EffectOutcome,
+): void {
+  const self = ctx.state.players[ctx.self];
+  let left = amount;
+
+  const hostile = who !== self && !isFriendly(ctx.state, ctx.self, who);
+  while (hostile && left > 0 && who.statusWard > 0) {
+    who.statusWard -= 1;
+    left -= 1;
+    out.log.push(`${who.name} turns aside ${statusId}`);
+  }
+
+  if (left > 0) {
+    addStatus(who, statusId, left, limitFor(ctx.state, who, ctx.hero, statusId));
+    out.log.push(`${who.name} gains ${left} ${statusId}`);
+  }
+}
+
 /** The die the enclosing `choose` picked, if it is still on the table. */
 function chosenDie(ctx: EffectContext): Die | undefined {
   const id = ctx.chosen?.dieId;
@@ -367,26 +398,15 @@ export function runEffects(
 
       case 'gainStatus': {
         const who = playerFor(ctx, effect.target);
-        let amount = resolveAmount(effect.amount ?? 1, ctx.hero, ctx.usedDice, self);
-
-        // A ward turns aside what somebody else is trying to put on you; it
-        // has nothing to say about tokens you give yourself.
-        const hostile = who !== self && !isFriendly(ctx.state, ctx.self, who);
-        while (hostile && amount > 0 && who.statusWard > 0) {
-          who.statusWard -= 1;
-          amount -= 1;
-          out.log.push(`${who.name} turns aside ${effect.status}`);
-        }
-
-        if (amount > 0) {
-          addStatus(who, effect.status, amount, limitFor(ctx.state, who, ctx.hero, effect.status));
-          out.log.push(`${who.name} gains ${amount} ${effect.status}`);
-        }
+        const amount = resolveAmount(effect.amount ?? 1, ctx.hero, ctx.usedDice, self);
+        grantStatus(ctx, who, effect.status, amount, out);
         break;
       }
 
       case 'removeStatus': {
         const picked = ctx.chosen?.status;
+        if (effect.status && immovable(effect.status)) break;
+        if (picked && immovable(picked.statusId)) break;
         if (effect.status) {
           const who = playerFor(ctx, effect.target);
           removeStatus(who, effect.status, effect.amount ?? 1);
@@ -403,14 +423,18 @@ export function runEffects(
 
       case 'removeAllStatus': {
         const who = playerFor(ctx, effect.target);
-        const had = Object.keys(who.statuses).length;
-        who.statuses = {};
+        // Whatever is nailed down stays: "may not be removed or transferred
+        // by any other means".
+        const kept = Object.entries(who.statuses).filter(([id]) => immovable(id));
+        const had = Object.keys(who.statuses).length - kept.length;
+        who.statuses = Object.fromEntries(kept);
         out.log.push(`${who.name} loses every status token (${had})`);
         break;
       }
 
       case 'transferStatus': {
         const picked = ctx.chosen?.status;
+        if (picked && immovable(picked.statusId)) break;
         const to = indexFor(ctx, effect.to);
         if (picked && to !== picked.player) {
           const from = ctx.state.players[picked.player];
@@ -515,10 +539,9 @@ export function runEffects(
       case 'statusOnDefender': {
         const attack = ctx.state.attack;
         const index = attack ? attack.defender : ctx.target;
-        const who = ctx.state.players[index];
-        const amount = effect.amount ?? 1;
-        addStatus(who, effect.status, amount, limitFor(ctx.state, who, ctx.hero, effect.status));
-        out.log.push(`${who.name} gains ${amount} ${effect.status}`);
+        // Goes through the same door as `gainStatus`: a token an Attack
+        // Modifier brings is exactly what a ward is held for.
+        grantStatus(ctx, ctx.state.players[index], effect.status, effect.amount ?? 1, out);
         break;
       }
 
@@ -711,6 +734,11 @@ function holds(ctx: EffectContext, cond: Condition): boolean {
   // The dice in context are the ones the sub-roll just threw.
   if ('rollAtLeast' in cond) return pipTotal(ctx.usedDice) >= cond.rollAtLeast;
   return (ctx.state.attack?.incoming ?? 0) >= cond.attackAtLeast;
+}
+
+/** True for a token its own text says nothing else may take away. */
+export function immovable(statusId: string): boolean {
+  return behaviourOf(statusId).immovable === true;
 }
 
 function matches(hero: Hero, die: Die, on: string | number): boolean {

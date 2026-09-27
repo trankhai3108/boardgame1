@@ -5,6 +5,7 @@ import { makeDice, rerollUnkept } from './dice';
 import { bestAbilities, levelOf, matchRequirement, passiveAt, tiersAt } from './combos';
 import {
   diceOnTable,
+  immovable,
   emptyOutcome,
   runEffects,
   subRollEffects,
@@ -1511,6 +1512,9 @@ export function choiceOptions(state: GameState, lookup: HeroLookup): ChoiceAnswe
         const hero = lookup(player.heroId);
         for (const [statusId, count] of Object.entries(player.statuses)) {
           if (count <= 0) continue;
+          // Never offer what nothing may take: picking it would be a wasted
+          // card and a confusing one.
+          if (immovable(statusId)) continue;
           if (spec.only && !spec.only.includes(statusId)) continue;
           if (spec.polarity) {
             const printed = hero.statusEffects.find((s) => s.id === statusId);
