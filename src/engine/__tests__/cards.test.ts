@@ -199,17 +199,17 @@ describe('status removal cards', () => {
     expect(game.players[1].statuses).toEqual({});
   });
 
-  it('does not strand the table when there is nothing to remove', () => {
-    let game = newGame();
-    // Nobody holds a token, so Bye Bye! has no legal answer.
+  it('is not offered at all when there is nothing to remove', () => {
+    const game = newGame();
+    // Nobody holds a token, so Bye Bye! has no legal answer. Playing it would
+    // cost its CP and do nothing, so it is kept out of the hand's options.
     game.players.forEach((p) => (p.statuses = {}));
     const card = deal(game.players[0], 'common-card-bye-bye');
 
-    game = act(game, { type: 'playCard', cardId: card });
-
-    expect(topPending(game), 'the card resolves instead of hanging').toBeNull();
     const options = legalActions(game, lookup);
-    expect(options.some((o) => o.type === 'nextPhase')).toBe(true);
+    expect(options.some((o) => o.type === 'playCard' && o.cardId === card)).toBe(false);
+    expect(() => act(game, { type: 'playCard', cardId: card })).toThrow(/cannot be played/);
+    expect(topPending(game), 'the table is not left hanging either').toBeNull();
   });
 
   it('Transfer Status! moves a token from one player to another', () => {

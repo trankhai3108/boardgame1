@@ -1,4 +1,12 @@
-import type { Ability, Card, Effect, Hero, PassiveOption } from './types';
+import type {
+  Ability,
+  Card,
+  ChoiceSpec,
+  Die,
+  Effect,
+  Hero,
+  PassiveOption,
+} from './types';
 import type { Action } from './actions';
 import { resolveDamage, type DamageModifier, type DamageType } from './damage';
 import { makeDice, rerollUnkept } from './dice';
@@ -1291,6 +1299,17 @@ export function canPlayCard(
   if (window?.needsRoll && !state.roll) return false;
   if (window?.needsOwnRoll && state.roll?.playerIndex !== playerIndex) return false;
 
+  /*
+   * A card is only playable if what it opens by asking can be answered.
+   * "Select 1 opponent's die" during your own Roll Phase has no answer —
+   * every die on the table is yours — and playing it burnt the card and its
+   * CP for nothing.
+   */
+  const opening = openingQuestions(card.effects ?? []);
+  if (opening.length > 0 && !opening.some((q) => answerable(state, playerIndex, q, lookup, false))) {
+    return false;
+  }
+
   switch (card.type) {
     case 'upgrade':
     case 'mainPhase':
@@ -1484,6 +1503,109 @@ function rollPending(state: GameState, lookup: HeroLookup, reroll: boolean): voi
 /* Choices                                                              */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Dice this seat may reach, given a scope.
+ *
+ * There is only ever one roll on the table — the Offensive Roll Phase belongs
+ * to the active player — plus whatever sub-roll is waiting to be confirmed.
+ * "Your own dice" and "an opponent's die" are therefore about *whose* roll it
+ * is, and for half the table the answer is that there are none.
+ */
+function diceInScope(
+  state: GameState,
+  seat: number,
+  scope: 'any' | 'own' | 'opponents',
+  skipTop = true,
+): Die[] {
+  const out: Die[] = [];
+  const team = (i: number) => state.players[i].team;
+  const allow = (ownerSeat: number) => {
+    const mine = team(ownerSeat) === team(seat);
+    return scope === 'any' || (scope === 'own' && mine) || (scope === 'opponents' && !mine);
+  };
+
+  const roll = state.roll;
+  if (roll && allow(roll.playerIndex)) out.push(...roll.dice);
+
+  // While a choice is on top of the stack, the roll it is about sits below it.
+  const index = state.pending.length - (skipTop ? 2 : 1);
+  const below = state.pending[index] ?? null;
+  if (below?.request.kind === 'roll' && below.rolled && allow(below.who)) {
+    out.push(...below.dice);
+  }
+  return out;
+}
+
+/** Tokens this seat may point at, given a scope. */
+function statusesInScope(
+  state: GameState,
+  seat: number,
+  spec: Extract<ChoiceSpec, { pick: 'status' }>,
+  lookup: HeroLookup,
+): { player: number; statusId: string }[] {
+  const out: { player: number; statusId: string }[] = [];
+  const scope = spec.scope ?? 'any';
+  for (const [index, player] of state.players.entries()) {
+    if (scope === 'own' && index !== seat) continue;
+    if (scope === 'opponents' && player.team === state.players[seat].team) continue;
+    const hero = lookup(player.heroId);
+    for (const [statusId, count] of Object.entries(player.statuses)) {
+      if (count <= 0) continue;
+      if (immovable(statusId)) continue;
+      if (spec.only && !spec.only.includes(statusId)) continue;
+      if (spec.polarity) {
+        const printed = hero.statusEffects.find((s) => s.id === statusId);
+        if (printed && printed.polarity !== spec.polarity) continue;
+      }
+      out.push({ player: index, statusId });
+    }
+  }
+  return out;
+}
+
+/**
+ * True when a question put to `seat` right now would have an answer.
+ *
+ * A card whose question has none is a card that costs its CP and does
+ * nothing, so this is what keeps it out of the hand's playable list.
+ */
+function answerable(
+  state: GameState,
+  seat: number,
+  spec: ChoiceSpec,
+  lookup: HeroLookup,
+  skipTop = true,
+): boolean {
+  switch (spec.pick) {
+    // `optional` is deliberately ignored. Being allowed to decline is not the
+    // same as having something to decline: a question whose only answer is
+    // "skip" leaves the card doing nothing, which is what this gate is for.
+    case 'die':
+      return diceInScope(state, seat, spec.scope ?? 'any', skipTop).length > 0;
+    case 'status':
+      return statusesInScope(state, seat, spec, lookup).length > 0;
+    default:
+      // A player, a pip value or a branch always has something to pick.
+      return true;
+  }
+}
+
+/**
+ * The questions a card asks before anything of it resolves.
+ *
+ * Only the ones at the top of the list count: a question nested inside
+ * another's answer, or behind a sub-roll, cannot be judged until the player
+ * has got that far.
+ */
+function openingQuestions(effects: readonly Effect[]): ChoiceSpec[] {
+  const out: ChoiceSpec[] = [];
+  for (const effect of effects) {
+    if (effect.t === 'choose') out.push(effect.request);
+    else if (effect.t === 'when') out.push(...openingQuestions(effect.effects));
+  }
+  return out;
+}
+
 /** Every answer the pending choice would accept, for a UI or a bot. */
 export function choiceOptions(state: GameState, lookup: HeroLookup): ChoiceAnswer[] {
   const step = topPending(state);
@@ -1505,43 +1627,13 @@ export function choiceOptions(state: GameState, lookup: HeroLookup): ChoiceAnswe
     }
 
     case 'status': {
-      const scope = spec.scope ?? 'any';
-      for (const [index, player] of state.players.entries()) {
-        if (scope === 'own' && index !== me) continue;
-        if (scope === 'opponents' && player.team === state.players[me].team) continue;
-        const hero = lookup(player.heroId);
-        for (const [statusId, count] of Object.entries(player.statuses)) {
-          if (count <= 0) continue;
-          // Never offer what nothing may take: picking it would be a wasted
-          // card and a confusing one.
-          if (immovable(statusId)) continue;
-          if (spec.only && !spec.only.includes(statusId)) continue;
-          if (spec.polarity) {
-            const printed = hero.statusEffects.find((s) => s.id === statusId);
-            if (printed && printed.polarity !== spec.polarity) continue;
-          }
-          out.push({ status: { player: index, statusId } });
-        }
-      }
+      for (const status of statusesInScope(state, me, spec, lookup)) out.push({ status });
       break;
     }
 
     case 'die': {
-      const scope = spec.scope ?? 'any';
-      const roll = state.roll;
-      if (roll) {
-        const mine = state.players[roll.playerIndex].team === state.players[me].team;
-        const allowed =
-          scope === 'any' || (scope === 'own' && mine) || (scope === 'opponents' && !mine);
-        if (allowed) for (const die of roll.dice) out.push({ dieId: die.id });
-      }
-      // A sub-roll waiting to be confirmed is on the table as much as the tray.
-      const below = state.pending[state.pending.length - 2] ?? null;
-      if (below?.request.kind === 'roll' && below.rolled) {
-        const mine = below.who === me;
-        const allowed =
-          scope === 'any' || (scope === 'own' && mine) || (scope === 'opponents' && !mine);
-        if (allowed) for (const die of below.dice) out.push({ dieId: die.id });
+      for (const die of diceInScope(state, me, spec.scope ?? 'any')) {
+        out.push({ dieId: die.id });
       }
       break;
     }

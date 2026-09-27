@@ -57,11 +57,55 @@ describe('Roll Phase Action cards (the orange ones)', () => {
   });
 
   it('can be played by the player whose turn it is not', () => {
+    // Surprise! reaches for "any 1 die", so the seat that is not rolling can
+    // still use it. Play Six! wants one of *your* dice and is covered below.
+    const anyDie = 'common-card-surprise';
     let state = game();
-    const id = give(state, 1, orange);
+    const id = give(state, 1, anyDie);
     state = toOffensiveRoll(state);
     expect(state.active).toBe(0);
-    expect(canPlayCard(state, 1, cardOf('moon-elf', orange), id, lookup)).toBe(true);
+    expect(canPlayCard(state, 1, cardOf('moon-elf', anyDie), id, lookup)).toBe(true);
+  });
+
+  /*
+   * Only the player whose Roll Phase it is has dice on the table, so a card
+   * that reaches for a die of a particular owner is playable only by the seat
+   * that can actually point at one. Offering it anyway spent the card and its
+   * CP on nothing.
+   */
+  it('is not offered when the die it asks for is not on the table', () => {
+    let state = game();
+    const mine = give(state, 1, 'common-card-play-six');
+    const theirs = give(state, 0, 'common-card-give-hand');
+    state = toOffensiveRoll(state);
+    expect(state.active).toBe(0);
+
+    // Seat 1 is not rolling: it has no dice of its own to set to 6.
+    expect(
+      canPlayCard(state, 1, cardOf('moon-elf', 'common-card-play-six'), mine, lookup),
+      'Play Six! with no dice of your own',
+    ).toBe(false);
+
+    // Seat 0 is rolling: every die on the table is its own, so there is no
+    // opponent die to send back.
+    expect(
+      canPlayCard(state, 0, cardOf('barbarian', 'common-card-give-hand'), theirs, lookup),
+      "Give a Hand! with no opponent's die",
+    ).toBe(false);
+  });
+
+  it('is offered to each seat the other way round', () => {
+    let state = game();
+    const mine = give(state, 0, 'common-card-play-six');
+    const theirs = give(state, 1, 'common-card-give-hand');
+    state = toOffensiveRoll(state);
+
+    expect(
+      canPlayCard(state, 0, cardOf('barbarian', 'common-card-play-six'), mine, lookup),
+    ).toBe(true);
+    expect(
+      canPlayCard(state, 1, cardOf('moon-elf', 'common-card-give-hand'), theirs, lookup),
+    ).toBe(true);
   });
 });
 

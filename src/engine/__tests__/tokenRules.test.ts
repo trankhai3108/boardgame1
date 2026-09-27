@@ -46,6 +46,8 @@ describe('Blessing of Divinity cannot be taken off', () => {
   it('survives Bye Bye!', () => {
     let game = newGame('paladin', 'barbarian');
     game.players[0].statuses['blessing-of-divinity'] = 1;
+    // Something else to take, so the card has a reason to be playable.
+    game.players[0].statuses.crit = 1;
     const card = deal(game, 1, 'common-card-bye-bye');
     game.active = 1;
     game.phase = 'main1';
@@ -84,6 +86,7 @@ describe('Blessing of Divinity cannot be taken off', () => {
   it('survives Transfer Status!', () => {
     let game = newGame('paladin', 'barbarian');
     game.players[0].statuses['blessing-of-divinity'] = 1;
+    game.players[0].statuses.crit = 1;
     const card = deal(game, 1, 'common-card-transfer-status');
     game.active = 1;
     game.phase = 'main1';
