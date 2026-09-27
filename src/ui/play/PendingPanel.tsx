@@ -4,7 +4,7 @@ import type { Action } from '../../engine/actions';
 import { diceOnTable, type ChoiceAnswer } from '../../engine/effects';
 import type { GameState, PendingStep } from '../../engine/state';
 import { fill } from '../../i18n';
-import { rolledDice } from './tableFx';
+import { rolledDice } from './tableEffects';
 import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { STATUS_ICONS, SYMBOL_ICONS } from '../card/iconRegistry';

@@ -9,7 +9,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { AbilityCard } from '../board/HeroBoard';
 import { STATUS_ICONS } from '../card/iconRegistry';
-import { useHitShake } from './tableFx';
+import { useHitShake } from './tableEffects';
 
 /**
  * One player's side of the table: vitals down the left, the hero board in the

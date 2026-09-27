@@ -4,7 +4,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { CardView } from '../card/Card';
 import { STATUS_ICONS } from '../card/iconRegistry';
-import type { Fx } from './tableFx';
+import type { Fx } from './tableEffects';
 
 /**
  * What just happened, played over the table.

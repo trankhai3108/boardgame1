@@ -4,6 +4,10 @@ import type { GameState, TableEvent } from '../../engine/state';
 /**
  * What just happened, as something the table can animate.
  *
+ * Named apart from `TableFx.tsx`, which draws these: a module whose name
+ * differed from a component's only by case resolved to the wrong one of the
+ * two on a case-insensitive filesystem.
+ *
  * The engine says what happened in `state.events`; this turns a batch of those
  * into the short-lived list the overlay draws, and holds the two hooks the
  * table drives its motion from. It lives apart from the components so the

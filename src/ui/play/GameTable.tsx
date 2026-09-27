@@ -22,7 +22,7 @@ import { renderMarkup } from '../card/markup';
 import { PendingPanel } from './PendingPanel';
 import { Seat } from './Seat';
 import { TableFx } from './TableFx';
-import { rolledDice, useTableFx } from './tableFx';
+import { rolledDice, useTableFx } from './tableEffects';
 import './play.css';
 import './table.css';
 
