@@ -1417,6 +1417,18 @@ function finishCard(
   const attack = state.attack;
   const player = state.players[playerIndex];
 
+  /*
+   * Ninjutsu's sixth face may buy undefendability instead of damage. The
+   * effect only raises a flag; without this the flag went nowhere and the
+   * option bought nothing. An Ultimate is already stronger, so it stands.
+   */
+  if (outcome.undefendable && attack && attack.attacker === playerIndex) {
+    if (attack.type === 'normal') {
+      attack.type = 'undefendable';
+      log(state, `${source}: the attack becomes undefendable`, player);
+    }
+  }
+
   if (outcome.damage > 0) {
     if (attack && attack.attacker === playerIndex) {
       attack.modifiers.push({ source, kind: 'add', amount: outcome.damage });
@@ -1819,6 +1831,31 @@ function cardActions(state: GameState, lookup: HeroLookup): Action[] {
   return out;
 }
 
+/**
+ * The Attack Modifiers the attacker may still spend on the attack in hand.
+ *
+ * Shared by both halves of the Defensive Roll Phase: the modifiers are on
+ * offer while the defence is still open and again once it has been settled,
+ * because Chi and its like may be spent at any time while damage is pending.
+ */
+function boostOffers(state: GameState, attack: PendingAttack): Action[] {
+  const index = attack.attacker;
+  const player = state.players[index];
+  // A response window belongs to whoever is taking the damage.
+  if (attack.window) return [];
+  if (lockedOutByUltimate(state, index) || stunned(state, index)) return [];
+
+  const out: Action[] = [];
+  for (const statusId of Object.keys(player.statuses)) {
+    const boost = behaviourOf(statusId).spendToBoost;
+    if (!boost) continue;
+    if (boost.notTheTurnGained && player.gainedThisTurn.includes(statusId)) continue;
+    if (boost.minDamage !== undefined && attack.incoming < boost.minDamage) continue;
+    out.push({ type: 'spendStatus', playerId: player.id, statusId });
+  }
+  return out;
+}
+
 /** The actions available right now, for a UI or a bot to choose from. */
 /**
  * True while Stun stops this player doing anything.
@@ -1970,6 +2007,14 @@ export function legalActions(state: GameState, lookup: HeroLookup): Action[] {
       const defHero = heroOf(lookup, defender);
 
       if (!attack.defenseResolved) {
+        /*
+         * An Attack Modifier is spent "at the conclusion of the Offensive Roll
+         * Phase" — before the defender answers, not after. Accuracy and
+         * Ninjutsu's sixth face both buy undefendability, which is worth
+         * nothing once the Defensive Ability has already been rolled, so the
+         * attacker is offered their modifiers here as well.
+         */
+        out.push(...boostOffers(state, attack));
         if (attack.type === 'normal' && !stunned(state, attack.defender)) {
           for (const ability of defHero.abilities.filter((a) => a.kind === 'defensive')) {
             out.push({ type: 'chooseDefense', abilityId: ability.id });
