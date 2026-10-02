@@ -6,7 +6,7 @@ import { useI18n } from '../../i18n/useI18n';
 import { K } from '../../i18n/types';
 import { apiBase, loadSession } from '../../net/client';
 import { useRoom } from '../../net/useRoom';
-import { GameTable } from './GameTable';
+import { PlaySurface } from './PlaySurface';
 
 const MODE_IDS: GameMode[] = ['1v1', '2v2', '3v3', '2v2v2', 'koth'];
 
@@ -286,7 +286,7 @@ export function OnlinePlay() {
           {error}
         </p>
       ) : null}
-      <GameTable
+      <PlaySurface
         game={game}
         you={you}
         onAction={(action) => client.act(action)}

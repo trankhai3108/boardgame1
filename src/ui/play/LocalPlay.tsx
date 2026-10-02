@@ -11,7 +11,7 @@ import {
   type GameState,
 } from '../../engine/state';
 import { useI18n } from '../../i18n/useI18n';
-import { GameTable } from './GameTable';
+import { PlaySurface } from './PlaySurface';
 
 const lookup: HeroLookup = (id) => HEROES[id];
 const MODE_IDS: GameMode[] = ['1v1', '2v2', '3v3', '2v2v2', 'koth'];
@@ -173,7 +173,7 @@ export function LocalPlay() {
   return (
     <>
       {error ? <p className="notice">{error}</p> : null}
-      <GameTable
+      <PlaySurface
         game={game}
         you={-1}
         onAction={dispatch}

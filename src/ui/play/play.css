@@ -876,3 +876,38 @@
   background: #3a2a5c;
   font-size: 0.75rem;
 }
+
+/* The flat table / 3D table switch, which rides in the toolbar of both. */
+.surface-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.surface-switch__btn {
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid #3a3a4a;
+  background: #1b1b26;
+  color: #b9b9c8;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.surface-switch__btn[aria-pressed='true'] {
+  background: #f0c250;
+  border-color: #f0c250;
+  color: #1a1a20;
+  font-weight: 600;
+}
+
+.table3d-loading {
+  display: grid;
+  place-items: center;
+  height: min(78vh, 860px);
+  min-height: 460px;
+  border-radius: 14px;
+  background: #07070c;
+  border: 1px solid #23232e;
+  color: #8a8a9a;
+}

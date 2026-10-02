@@ -1,0 +1,588 @@
+/*
+ * The table you can walk round, and the glass in front of it.
+ *
+ * Two layers: the canvas fills the space and is only ever the table, and the
+ * HUD sits on top of it as flat panels that never take the pointer except on
+ * the controls themselves — a HUD that eats clicks is a table you cannot pick
+ * anything up from.
+ */
+
+.table3d {
+  position: relative;
+  width: 100%;
+  height: min(78vh, 860px);
+  min-height: 460px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #07070c;
+  border: 1px solid #23232e;
+}
+
+.table3d canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* The board, laid on the table                                        */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Sized in pixels and shrunk into the scene by `BOARD.scale`, so the board is
+ * drawn at a comfortable reading size and then placed, rather than drawn tiny
+ * and magnified into mush.
+ */
+.b3d {
+  width: 1180px;
+  box-sizing: border-box;
+  padding: 14px 16px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, var(--dt-hero-board, #2a2a33), #15151c);
+  border: 3px solid rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+  color: #f2efe6;
+  font-family: system-ui, sans-serif;
+  user-select: none;
+}
+
+.b3d--mine {
+  border-color: var(--dt-hero-accent, #c8a94e);
+}
+
+/* Whose turn it is, said with light rather than with a label. */
+.b3d--active {
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.55),
+    0 0 0 4px rgba(240, 194, 80, 0.55),
+    0 0 34px rgba(240, 194, 80, 0.3);
+}
+
+.b3d--out {
+  filter: grayscale(0.85);
+}
+
+.b3d__name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.b3d__name img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.b3d__hp,
+.b3d__cp,
+.b3d__tag {
+  font-size: 24px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.b3d__hp {
+  color: #ff9a8b;
+}
+.b3d__cp {
+  color: #8ad0ff;
+}
+.b3d__tag {
+  margin-left: auto;
+  color: #f0c250;
+}
+
+.b3d__board {
+  display: grid;
+  grid-template-columns: 1fr 300px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+/* Four slots a side, in the 2x2 the folding board prints them in. */
+.b3d__wing {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.b3d__centre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.b3d__centre h3 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dt-hero-accent, #c8a94e);
+}
+
+.b3d__slot {
+  position: relative;
+  border-radius: 10px;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+/* A slot the dice have satisfied. */
+.b3d__slot--live {
+  box-shadow:
+    0 0 0 3px #f0c250,
+    0 0 20px rgba(240, 194, 80, 0.55);
+}
+
+/* ...and one this player may press right now. */
+.b3d__slot--press {
+  cursor: pointer;
+}
+
+.b3d__slot--press:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow:
+    0 0 0 3px #ffe08a,
+    0 10px 24px rgba(0, 0, 0, 0.5);
+}
+
+.b3d__level {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f0c250;
+  text-shadow: 0 1px 3px #000;
+}
+
+.b3d__ready {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f0c250;
+  color: #1a1a20;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.b3d__tokens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.b3d__token {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 20px;
+}
+
+.b3d__token svg {
+  width: 26px;
+  height: 26px;
+}
+
+.b3d__hpbar {
+  margin-top: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.b3d__hpbar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #d8544a, #ff9a8b);
+}
+
+/* ------------------------------------------------------------------ */
+/* The glass                                                           */
+/* ------------------------------------------------------------------ */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* The table underneath must stay clickable; only the controls take the
+     pointer, and each of them turns it back on for itself. */
+  pointer-events: none;
+  padding: 10px;
+  gap: 8px;
+}
+
+.hud__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hud__phase {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: rgba(10, 10, 16, 0.78);
+  border: 1px solid #2d2d3a;
+  backdrop-filter: blur(6px);
+}
+
+.hud__phase b {
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f0c250;
+}
+
+.hud__phase span {
+  font-size: 0.78rem;
+  color: #a8a8b8;
+}
+
+.hud__toolbar {
+  pointer-events: auto;
+  margin-left: auto;
+}
+
+.hud__views {
+  pointer-events: auto;
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(10, 10, 16, 0.78);
+  border: 1px solid #2d2d3a;
+}
+
+.hud__toolbar + .hud__views {
+  margin-left: 0;
+}
+
+.hud__view {
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: 0;
+  background: transparent;
+  color: #b9b9c8;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.hud__view[aria-pressed='true'] {
+  background: #f0c250;
+  color: #1a1a20;
+  font-weight: 600;
+}
+
+.hud__declared {
+  pointer-events: none;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 10px;
+  background: rgba(36, 29, 15, 0.92);
+  border: 1px solid #7a5f22;
+  color: #f5e7c0;
+  font-size: 0.9rem;
+}
+
+.hud__declared span {
+  color: #c8a94e;
+  font-size: 0.78rem;
+}
+
+.hud__pending {
+  pointer-events: auto;
+  align-self: center;
+  max-width: min(680px, 94%);
+  max-height: 46%;
+  overflow: auto;
+  border-radius: 12px;
+  background: rgba(10, 10, 16, 0.92);
+  border: 1px solid #2d2d3a;
+}
+
+.hud__bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud__actions {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hud__button {
+  padding: 9px 18px;
+  border-radius: 9px;
+  border: 1px solid #3a3a4a;
+  background: linear-gradient(180deg, #2a2a38, #1b1b26);
+  color: #f2efe6;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hud__button:hover {
+  border-color: #f0c250;
+  color: #f0c250;
+}
+
+/* The hand, held along the bottom edge. */
+.hud__hand {
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px 2px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.hud__card {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 8px;
+  /* Held low and raised to be read, the way you look at your own hand. The
+     part left showing has to carry the card's name, which is at its top. */
+  margin-bottom: -58%;
+  transition: transform 140ms ease, margin-bottom 140ms ease;
+}
+
+.hud__card:hover {
+  margin-bottom: -8%;
+  transform: scale(1.04);
+  z-index: 2;
+}
+
+@media (max-width: 760px) {
+  .table3d {
+    height: 70vh;
+  }
+  .hud__card {
+    margin-bottom: -64%;
+  }
+}
+
+/*
+ * A panel pinned to a point on the table.
+ *
+ * Positioned from the top-left and then moved onto its anchor by its own
+ * transform, so the scale it is given never fights the position it is given.
+ */
+.scene-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* ------------------------------------------------------------------ */
+/* Deck and discard, beside each board                                 */
+/* ------------------------------------------------------------------ */
+
+.b3d__piles {
+  display: flex;
+  gap: 16px;
+  font-family: system-ui, sans-serif;
+}
+
+.pile {
+  position: relative;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #f2efe6;
+  font-family: inherit;
+}
+
+.pile--discard {
+  cursor: pointer;
+}
+
+.pile__back,
+.pile__slot {
+  display: grid;
+  place-items: center;
+  height: 196px;
+  border-radius: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The draw pile: face down, in the hero's colours, with the thickness of a
+   stack under it. */
+.pile__back {
+  background: linear-gradient(160deg, var(--dt-hero-primary, #3a3a48), var(--dt-hero-board, #15151c));
+  border: 3px solid rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.45),
+    0 6px 0 rgba(0, 0, 0, 0.3),
+    0 12px 20px rgba(0, 0, 0, 0.5);
+  color: var(--dt-hero-accent, #e8ddc0);
+}
+
+/* The discard: an empty, marked-out place, as the printed mat prints it. */
+.pile__slot {
+  background: rgba(10, 10, 16, 0.5);
+  border: 3px dashed rgba(255, 255, 255, 0.35);
+  color: #cfcfdd;
+}
+
+.pile--discard:hover .pile__slot {
+  border-color: #f0c250;
+  color: #f0c250;
+}
+
+.pile b {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  min-width: 42px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #0d0d14;
+  border: 2px solid #f0c250;
+  color: #f0c250;
+  font-size: 22px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reading something closely                                           */
+/* ------------------------------------------------------------------ */
+
+.reader {
+  position: absolute;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 4, 8, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.reader__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: min(1100px, 94vw);
+  max-height: 88%;
+  padding: 14px 16px 18px;
+  border-radius: 14px;
+  background: #12121a;
+  border: 1px solid #343444;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.reader__panel--one {
+  align-items: center;
+}
+
+.reader__panel header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.reader__panel header h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f0c250;
+}
+
+.reader__panel header button {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #3a3a4a;
+  background: #1b1b26;
+  color: #cfcfdd;
+  cursor: pointer;
+}
+
+.reader__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  overflow: auto;
+  padding: 2px;
+}
+
+.reader__empty {
+  margin: 0;
+  color: #8a8a9a;
+}
+
+.reader__ability {
+  overflow: auto;
+}
+
+.reader__use {
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: 0;
+  background: #f0c250;
+  color: #1a1a20;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* A slot is a button now, so it must not look like one. */
+.b3d__slot {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: inherit;
+  font: inherit;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.b3d__slot--press {
+  cursor: pointer;
+}
