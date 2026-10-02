@@ -10,8 +10,8 @@ import { AbilityCard } from '../board/HeroBoard';
 import { CardView } from '../card/Card';
 import { STATUS_ICONS } from '../card/iconRegistry';
 import type { Projection } from './projection';
-import { ScenePanel } from './ScenePanel';
-import { BOARD, DECK, TABLE_H, seatSpot } from './scene';
+import { SceneLayer, ScenePanel } from './ScenePanel';
+import { BOARD, DECK, TABLE_H, seatFacing, seatSpot } from './scene';
 
 /**
  * One player's place at the table: their board, their deck, their discard.
@@ -125,10 +125,27 @@ function BoardFace({
       <header className="b3d__name">
         {hero.portrait ? <img src={hero.portrait} alt="" /> : null}
         <span>{player.name}</span>
-        <span className="b3d__hp">{health}</span>
-        <span className="b3d__cp">{player.cp} CP</span>
         {you === index ? <span className="b3d__tag">{t('ui.play.you')}</span> : null}
       </header>
+
+      {/* The two dials every printed board carries down its edge. A number in
+          a header is a statistic; a dial is a thing on the board that players
+          look at without being told where it is. */}
+      <div className="b3d__dials">
+        <div className="dial dial--hp">
+          <b>{health}</b>
+          <span>{t('ui.play.health')}</span>
+          <i style={{ width: `${Math.max(0, (health / team.maxHealth) * 100)}%` }} />
+        </div>
+        <div className="dial dial--cp">
+          <b>{player.cp}</b>
+          <span>{t('ui.play.cp')}</span>
+        </div>
+        <div className="dial dial--cards">
+          <b>{player.hand.length}</b>
+          <span>{t('ui.play.cards')}</span>
+        </div>
+      </div>
 
       <div className="b3d__board">
         <div className="b3d__wing">{rest.slice(0, half).map(slot)}</div>
@@ -152,9 +169,6 @@ function BoardFace({
         <div className="b3d__wing">{rest.slice(half).map(slot)}</div>
       </div>
 
-      <div className="b3d__hpbar" aria-hidden="true">
-        <span style={{ width: `${Math.max(0, (health / team.maxHealth) * 100)}%` }} />
-      </div>
     </div>
   );
 }
@@ -213,18 +227,19 @@ export function Seats3D({
   const count = game.players.length;
 
   return (
-    <>
+    <SceneLayer projection={projection}>
       {game.players.map((_player, index) => {
         const [bx, bz] = seatSpot(index, count, you, BOARD.radius);
         const [px, pz] = seatSpot(index, count, you, DECK.radius, DECK.sideways);
+        const facing = seatFacing(index, count, you);
         return (
-          <div key={index}>
+          <div key={index} className="scene-seat">
             <ScenePanel
               projection={projection}
               position={[bx, TABLE_H + BOARD.y, bz]}
+              facing={facing}
               widthPx={BOARD.widthPx}
               widthM={BOARD.widthM}
-              zBase={120}
             >
               <BoardFace
                 game={game}
@@ -238,16 +253,16 @@ export function Seats3D({
             <ScenePanel
               projection={projection}
               position={[px, TABLE_H + BOARD.y, pz]}
-              widthPx={320}
-              widthM={0.2}
-              zBase={120}
+              facing={facing}
+              widthPx={340}
+              widthM={0.23}
             >
               <Piles game={game} index={index} onInspect={onInspect} />
             </ScenePanel>
           </div>
         );
       })}
-    </>
+    </SceneLayer>
   );
 }
 

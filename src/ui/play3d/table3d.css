@@ -78,8 +78,6 @@
   border: 2px solid rgba(255, 255, 255, 0.25);
 }
 
-.b3d__hp,
-.b3d__cp,
 .b3d__tag {
   font-size: 24px;
   padding: 3px 12px;
@@ -87,15 +85,61 @@
   background: rgba(0, 0, 0, 0.42);
 }
 
-.b3d__hp {
-  color: #ff9a8b;
-}
-.b3d__cp {
-  color: #8ad0ff;
-}
 .b3d__tag {
   margin-left: auto;
   color: #f0c250;
+}
+
+/* The dials, as the printed board carries them: a thing on the board rather
+   than a number in a caption. */
+.b3d__dials {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dial {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  padding: 6px 12px 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+
+.dial b {
+  display: block;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.dial span {
+  display: block;
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+/* How much of the dial is left, drawn under the number it belongs to. */
+.dial i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #d8544a, #ff9a8b);
+}
+
+.dial--hp b {
+  color: #ff9a8b;
+}
+.dial--cp b {
+  color: #8ad0ff;
+}
+.dial--cards b {
+  color: #e8ddc0;
 }
 
 .b3d__board {
@@ -198,20 +242,6 @@
 .b3d__token svg {
   width: 26px;
   height: 26px;
-}
-
-.b3d__hpbar {
-  margin-top: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-
-.b3d__hpbar span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #d8544a, #ff9a8b);
 }
 
 /* ------------------------------------------------------------------ */
@@ -397,16 +427,42 @@
 }
 
 /*
- * A panel pinned to a point on the table.
+ * The layer the panels lie in.
  *
- * Positioned from the top-left and then moved onto its anchor by its own
- * transform, so the scale it is given never fights the position it is given.
+ * The browser does the perspective, from an origin matched to the camera's
+ * field of view; the inner element carries the camera's own transform. Neither
+ * takes the pointer — the panels inside turn it back on for themselves — so
+ * the table underneath stays draggable everywhere there is nothing lying on
+ * it.
  */
+.scene-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.scene-layer__camera,
+.scene-seat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+}
+
+/* A panel is placed by its own world matrix, so it lies on the table rather
+   than facing the viewer. */
 .scene-panel {
   position: absolute;
   top: 0;
   left: 0;
-  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  /* The matrix lands the panel's corner on its anchor; the trailing
+     translate in `panelTransform` then centres it on that point. */
+  transform-origin: 0 0;
+  pointer-events: auto;
   will-change: transform;
 }
 

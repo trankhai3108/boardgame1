@@ -36,6 +36,9 @@ interface Spin {
 
 const DURATION = 0.72;
 
+/** What a seat's dice show when it is not their turn to throw. */
+const RESTING = [1, 2, 3, 4, 5];
+
 function restingQuaternion(value: number): Quaternion {
   const [x, y, z] = FACE_UP[value] ?? [0, 0, 0];
   return new Quaternion().setFromEuler(new Euler(x, y, z));
@@ -60,6 +63,7 @@ function OneDie({
   position,
   onClick,
   canKeep,
+  idle = false,
   thrown,
 }: {
   die: Die;
@@ -67,6 +71,8 @@ function OneDie({
   position: [number, number, number];
   onClick?: () => void;
   canKeep: boolean;
+  /** Lying by, rather than in play: dimmed so the live dice stand out. */
+  idle?: boolean;
   /** Bumped whenever the engine says this die was thrown. */
   thrown: number;
 }) {
@@ -146,7 +152,7 @@ function OneDie({
         document.body.style.cursor = '';
       }}
     >
-      <mesh castShadow receiveShadow material={materials}>
+      <mesh castShadow receiveShadow material={materials} scale={idle ? 0.82 : 1}>
         <boxGeometry args={[DIE.size, DIE.size, DIE.size]} />
       </mesh>
 
@@ -193,30 +199,48 @@ export function Dice3D({
     });
   }, [game.events]);
 
-  if (!roll) return null;
-
-  const seat = roll.playerIndex;
+  /*
+   * Every seat's dice, not only the one being thrown.
+   *
+   * Dice live on the table between turns as much as during them: a player
+   * looks across to see what an opponent is holding, and a table with nothing
+   * on it until somebody rolls reads as a table nobody is playing at. The seat
+   * actually rolling shows the engine's dice; the rest show theirs at rest.
+   */
   const count = game.players.length;
-  const [cx, cz] = seatSpot(seat, count, you, TRAY.radius);
-  const facing = seatFacing(seat, count, you);
-  const hero = game.players[seat].heroId;
 
-  // Laid in a row across the thrower's view, kept dice drawn forward out of it.
-  const half = (roll.dice.length - 1) / 2;
   return (
-    // Dice sit on the table top, not on the floor it stands on.
-    <group position={[cx, TABLE_H, cz]} rotation={[0, facing, 0]}>
-      {roll.dice.map((die, i) => (
-        <OneDie
-          key={die.id}
-          die={die}
-          hero={hero}
-          position={[(i - half) * DIE.pitch, DIE.size / 2, die.kept ? DIE.keptOffset : 0]}
-          canKeep={canAct}
-          thrown={throws[die.id] ?? 0}
-          onClick={canAct ? () => onAction({ type: 'toggleKeep', dieId: die.id }) : undefined}
-        />
-      ))}
-    </group>
+    <>
+      {game.players.map((player, seat) => {
+        const mine = roll?.playerIndex === seat;
+        const dice =
+          mine && roll
+            ? roll.dice
+            : RESTING.map((value, i) => ({ id: `${seat}-idle-${i}`, value, kept: false }));
+        const [cx, cz] = seatSpot(seat, count, you, TRAY.radius);
+        const facing = seatFacing(seat, count, you);
+        const half = (dice.length - 1) / 2;
+
+        return (
+          // Dice sit on the table top, not on the floor it stands on.
+          <group key={seat} position={[cx, TABLE_H, cz]} rotation={[0, facing, 0]}>
+            {dice.map((die, i) => (
+              <OneDie
+                key={die.id}
+                die={die}
+                hero={player.heroId}
+                position={[(i - half) * DIE.pitch, DIE.size / 2, die.kept ? DIE.keptOffset : 0]}
+                canKeep={mine && canAct}
+                idle={!mine}
+                thrown={throws[die.id] ?? 0}
+                onClick={
+                  mine && canAct ? () => onAction({ type: 'toggleKeep', dieId: die.id }) : undefined
+                }
+              />
+            ))}
+          </group>
+        );
+      })}
+    </>
   );
 }

@@ -44,9 +44,11 @@ export function Camera3D({
     }
 
     if (view === 'table') {
+      // Far enough back that both ends of the table stay in it: a close look
+      // at the middle is not much use if it loses the boards either side.
       wanted.current = {
-        position: new Vector3(0, TABLE_H + 0.95, 0.72),
-        target: new Vector3(0, TABLE_H, 0),
+        position: new Vector3(0, TABLE_H + 1.15, 1.05),
+        target: new Vector3(0, TABLE_H, -0.05),
       };
       return;
     }
