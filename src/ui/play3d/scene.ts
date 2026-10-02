@@ -74,11 +74,17 @@ export const TRAY = { radius: 0.3, spread: 0.1 };
  */
 export const DECK = { radius: 0.74, sideways: 0.56 };
 
-/** One die, and how the five of them lie once they settle. */
+/**
+ * One die, and how the five of them lie once they settle.
+ *
+ * A real Dice Throne die is 16 mm. These are larger than life because the
+ * whole table has to be readable from across it, and a die you have to zoom
+ * in on to read is a die you will misread.
+ */
 export const DIE = {
-  size: 0.03,
+  size: 0.042,
   /** Gap between settled dice, centre to centre. */
-  pitch: 0.078,
+  pitch: 0.095,
   /** How high a die is lifted while it tumbles. */
   hop: 0.11,
   /** A kept die is pushed this far towards its owner, out of the throw. */

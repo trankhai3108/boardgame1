@@ -6,7 +6,7 @@ import type { Action } from '../../engine/actions';
 import type { GameState } from '../../engine/state';
 import type { Die } from '../../engine/types';
 import { dieTextures } from './dieTexture';
-import { DIE, FACE_UP, TRAY, seatFacing, seatSpot } from './scene';
+import { DIE, FACE_UP, TABLE_H, TRAY, seatFacing, seatSpot } from './scene';
 
 /**
  * The dice on the table.
@@ -204,7 +204,8 @@ export function Dice3D({
   // Laid in a row across the thrower's view, kept dice drawn forward out of it.
   const half = (roll.dice.length - 1) / 2;
   return (
-    <group position={[cx, 0, cz]} rotation={[0, facing, 0]}>
+    // Dice sit on the table top, not on the floor it stands on.
+    <group position={[cx, TABLE_H, cz]} rotation={[0, facing, 0]}>
       {roll.dice.map((die, i) => (
         <OneDie
           key={die.id}
